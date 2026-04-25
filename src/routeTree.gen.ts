@@ -9,38 +9,141 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardJoinRouteImport } from './routes/dashboard.join'
+import { Route as DashboardCreateRouteImport } from './routes/dashboard.create'
+import { Route as DashboardTontineTontineIdRouteImport } from './routes/dashboard.tontine.$tontineId'
 
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardJoinRoute = DashboardJoinRouteImport.update({
+  id: '/join',
+  path: '/join',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardCreateRoute = DashboardCreateRouteImport.update({
+  id: '/create',
+  path: '/create',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardTontineTontineIdRoute =
+  DashboardTontineTontineIdRouteImport.update({
+    id: '/tontine/$tontineId',
+    path: '/tontine/$tontineId',
+    getParentRoute: () => DashboardRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/create': typeof DashboardCreateRoute
+  '/dashboard/join': typeof DashboardJoinRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/tontine/$tontineId': typeof DashboardTontineTontineIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard/create': typeof DashboardCreateRoute
+  '/dashboard/join': typeof DashboardJoinRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard': typeof DashboardIndexRoute
+  '/dashboard/tontine/$tontineId': typeof DashboardTontineTontineIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/dashboard': typeof DashboardRouteWithChildren
+  '/dashboard/create': typeof DashboardCreateRoute
+  '/dashboard/join': typeof DashboardJoinRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/': typeof DashboardIndexRoute
+  '/dashboard/tontine/$tontineId': typeof DashboardTontineTontineIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/dashboard/create'
+    | '/dashboard/join'
+    | '/dashboard/settings'
+    | '/dashboard/'
+    | '/dashboard/tontine/$tontineId'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/dashboard/create'
+    | '/dashboard/join'
+    | '/dashboard/settings'
+    | '/dashboard'
+    | '/dashboard/tontine/$tontineId'
+  id:
+    | '__root__'
+    | '/'
+    | '/auth'
+    | '/dashboard'
+    | '/dashboard/create'
+    | '/dashboard/join'
+    | '/dashboard/settings'
+    | '/dashboard/'
+    | '/dashboard/tontine/$tontineId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthRoute: typeof AuthRoute
+  DashboardRoute: typeof DashboardRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,11 +151,68 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/join': {
+      id: '/dashboard/join'
+      path: '/join'
+      fullPath: '/dashboard/join'
+      preLoaderRoute: typeof DashboardJoinRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/create': {
+      id: '/dashboard/create'
+      path: '/create'
+      fullPath: '/dashboard/create'
+      preLoaderRoute: typeof DashboardCreateRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/tontine/$tontineId': {
+      id: '/dashboard/tontine/$tontineId'
+      path: '/tontine/$tontineId'
+      fullPath: '/dashboard/tontine/$tontineId'
+      preLoaderRoute: typeof DashboardTontineTontineIdRouteImport
+      parentRoute: typeof DashboardRoute
+    }
   }
 }
 
+interface DashboardRouteChildren {
+  DashboardCreateRoute: typeof DashboardCreateRoute
+  DashboardJoinRoute: typeof DashboardJoinRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+  DashboardTontineTontineIdRoute: typeof DashboardTontineTontineIdRoute
+}
+
+const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardCreateRoute: DashboardCreateRoute,
+  DashboardJoinRoute: DashboardJoinRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+  DashboardTontineTontineIdRoute: DashboardTontineTontineIdRoute,
+}
+
+const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
+  DashboardRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthRoute: AuthRoute,
+  DashboardRoute: DashboardRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
