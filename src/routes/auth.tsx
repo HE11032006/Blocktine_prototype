@@ -11,8 +11,8 @@ export const Route = createFileRoute("/auth")({
   }),
   head: () => ({
     meta: [
-      { title: "Connexion — TontineChain" },
-      { name: "description", content: "Connectez-vous ou créez un compte TontineChain." },
+      { title: "Connexion — blockTine" },
+      { name: "description", content: "Connectez-vous ou créez un compte blockTine." },
     ],
   }),
   component: AuthPage,
@@ -55,7 +55,7 @@ function AuthPage() {
             {isSignup ? "Créer un compte" : "Bon retour"}
           </h1>
           <p className="text-sm text-muted-foreground mt-2">
-            {isSignup ? "Rejoignez la communauté TontineChain." : "Reconnectez-vous à votre cercle."}
+            {isSignup ? "Rejoignez la communauté blockTine." : "Reconnectez-vous à votre cercle."}
           </p>
         </div>
 

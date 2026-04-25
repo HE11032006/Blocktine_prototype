@@ -3,7 +3,7 @@ import { useApp } from "@/lib/app-context";
 import { ArrowRight, Plus, Users, Wallet, TrendingUp, Calendar } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/")({
-  head: () => ({ meta: [{ title: "Tableau de bord — TontineChain" }] }),
+  head: () => ({ meta: [{ title: "Tableau de bord — blockTine" }] }),
   component: DashboardHome,
 });
 

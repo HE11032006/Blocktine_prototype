@@ -4,7 +4,7 @@ import { ArrowRight } from "lucide-react";
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "TontineChain — L'épargne collective réinventée" },
+      { title: "blockTine — L'épargne collective réinventée" },
       {
         name: "description",
         content:
@@ -53,7 +53,7 @@ function Landing() {
             ◆
           </div>
           <span className="font-display text-2xl tracking-wide">
-            Tontine<span className="text-primary">Chain</span>
+            block<span className="text-primary">Tine</span>
           </span>
         </div>
         <Link to="/auth" search={{ mode: "login" }} className="text-xs font-medium text-muted-foreground hover:text-primary">
@@ -77,7 +77,7 @@ function Landing() {
           </div>
 
           <p className="mt-6 text-base text-muted-foreground max-w-lg fade-up-3">
-            TontineChain transforme la tradition béninoise de l'épargne collective en un protocole transparent,
+            blockTine transforme la tradition béninoise de l'épargne collective en un protocole transparent,
             sécurisé par smart contracts sur Polygon. Pas de chef, pas de fuite, pas de doute.
           </p>
 

@@ -5,7 +5,7 @@ import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Cro
 import type { MemberStatus } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
-  head: () => ({ meta: [{ title: "Détail tontine — TontineChain" }] }),
+  head: () => ({ meta: [{ title: "Détail tontine — blockTine" }] }),
   component: TontineDetail,
 });
 

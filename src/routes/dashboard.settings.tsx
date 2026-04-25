@@ -4,7 +4,7 @@ import { ArrowLeft, Moon, Sun } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 
 export const Route = createFileRoute("/dashboard/settings")({
-  head: () => ({ meta: [{ title: "Paramètres — TontineChain" }] }),
+  head: () => ({ meta: [{ title: "Paramètres — blockTine" }] }),
   component: SettingsPage,
 });
 

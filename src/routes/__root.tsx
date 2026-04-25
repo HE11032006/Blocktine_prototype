@@ -27,13 +27,13 @@ export const Route = createRootRoute({
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "TontineChain — L'épargne collective sécurisée" },
+      { title: "blockTine — L'épargne collective sécurisée" },
       {
         name: "description",
         content:
-          "TontineChain : la tontine béninoise réinventée sur la blockchain Polygon. Épargne collective, transparente et décentralisée.",
+          "blockTine : la tontine béninoise réinventée sur la blockchain Polygon. Épargne collective, transparente et décentralisée.",
       },
-      { property: "og:title", content: "TontineChain — L'épargne collective sécurisée" },
+      { property: "og:title", content: "blockTine — L'épargne collective sécurisée" },
       { property: "og:description", content: "La tontine décentralisée, sécurisée par smart contracts." },
       { property: "og:type", content: "website" },
     ],

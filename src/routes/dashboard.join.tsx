@@ -6,7 +6,7 @@ import { ArrowLeft, Users, X } from "lucide-react";
 import type { Tontine } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard/join")({
-  head: () => ({ meta: [{ title: "Rejoindre une tontine — TontineChain" }] }),
+  head: () => ({ meta: [{ title: "Rejoindre une tontine — blockTine" }] }),
   component: JoinPage,
 });
 

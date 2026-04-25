@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Copy, Check, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/dashboard/create")({
-  head: () => ({ meta: [{ title: "Créer une tontine — TontineChain" }] }),
+  head: () => ({ meta: [{ title: "Créer une tontine — blockTine" }] }),
   component: CreatePage,
 });
 
