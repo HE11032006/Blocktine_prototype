@@ -68,8 +68,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
       createTontine: ({ name, capacity, amount, cycle }) => {
         const id = `t-${Date.now().toString(36)}`;
+        const code = `TC-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
         const t: Tontine = {
           id,
+          code,
           name,
           description: "Nouvelle tontine créée par vous.",
           members: [{ id: "m1", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "paid" }],
