@@ -33,7 +33,7 @@ function TontineDetail() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">
             {t.cycle === "weekly" ? "Hebdomadaire" : "Mensuel"} · {t.amount} MATIC
@@ -44,6 +44,24 @@ function TontineDetail() {
         <span className="hero-badge">
           <ShieldCheck className="h-3 w-3 mr-1" /> Sécurisée par smart contracts Polygon
         </span>
+      </div>
+
+      {/* Code + members summary strip */}
+      <div className="grid sm:grid-cols-3 gap-3 mb-6">
+        <div className="tc-card p-4 sm:col-span-1">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Code de la tontine</span>
+          <p className="font-display text-2xl text-primary tracking-wider mt-0.5">{t.code}</p>
+        </div>
+        <div className="tc-card p-4">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Membres</span>
+          <p className="font-display text-2xl text-primary mt-0.5">{t.members.length} / {t.capacity}</p>
+        </div>
+        <div className="tc-card p-4">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">En règle</span>
+          <p className="font-display text-2xl text-primary mt-0.5">
+            {t.members.filter((m) => m.status === "paid").length} / {t.members.length}
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
@@ -86,25 +104,30 @@ function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
 
   return (
     <div className="grid lg:grid-cols-3 gap-5">
-      {/* Members */}
+      {/* Members grouped by status */}
       <div className="tc-card p-6 lg:col-span-2">
-        <h3 className="font-display text-2xl mb-4">Membres</h3>
-        <ul className="divide-y divide-border">
-          {t.members.map((m) => (
-            <li key={m.id} className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full grid place-items-center bg-secondary text-primary font-display">
-                  {m.name[0]}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{m.name}</p>
-                  <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
-                </div>
-              </div>
-              <StatusBadge status={m.status} />
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-baseline justify-between mb-4">
+          <h3 className="font-display text-2xl">Membres</h3>
+          <span className="text-xs text-muted-foreground">
+            {paidCount} en règle · {t.members.length - paidCount} en attente
+          </span>
+        </div>
+
+        <MemberGroup
+          label="✓ En règle"
+          tone="ok"
+          members={t.members.filter((m) => m.status === "paid")}
+        />
+        <MemberGroup
+          label="⏱ En attente"
+          tone="muted"
+          members={t.members.filter((m) => m.status === "pending")}
+        />
+        <MemberGroup
+          label="⚠ En retard"
+          tone="bad"
+          members={t.members.filter((m) => m.status === "late")}
+        />
       </div>
 
       {/* Tracker */}
@@ -216,6 +239,43 @@ function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
           {t.members.length}/{t.capacity} membres · {t.cycle === "weekly" ? "Cycle hebdo" : "Cycle mensuel"}
         </p>
       </div>
+    </div>
+  );
+}
+
+function MemberGroup({
+  label,
+  tone,
+  members,
+}: {
+  label: string;
+  tone: "ok" | "muted" | "bad";
+  members: import("@/lib/mock-data").Member[];
+}) {
+  if (members.length === 0) return null;
+  const color =
+    tone === "ok" ? "text-primary" : tone === "bad" ? "text-destructive" : "text-muted-foreground";
+  return (
+    <div className="mt-4 first:mt-0">
+      <div className={`text-[0.65rem] uppercase tracking-widest font-semibold ${color} mb-2`}>
+        {label} <span className="text-muted-foreground">· {members.length}</span>
+      </div>
+      <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+        {members.map((m) => (
+          <li key={m.id} className="flex items-center justify-between py-2.5 px-3 bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full grid place-items-center bg-secondary text-primary font-display">
+                {m.name[0]}
+              </div>
+              <div>
+                <p className="text-sm font-medium">{m.name}</p>
+                <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
+              </div>
+            </div>
+            <StatusBadge status={m.status} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

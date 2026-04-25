@@ -20,6 +20,7 @@ export interface Transaction {
 
 export interface Tontine {
   id: string;
+  code: string;
   name: string;
   description: string;
   members: Member[];
@@ -45,6 +46,7 @@ const sampleTx = (n: number): Transaction[] =>
 export const initialTontines: Tontine[] = [
   {
     id: "t-cauris",
+    code: "CAURI-7821",
     name: "Cercle des Cauris",
     description: "Tontine mensuelle entre artisans du marché Dantokpa.",
     members: [
@@ -64,6 +66,7 @@ export const initialTontines: Tontine[] = [
   },
   {
     id: "t-kente",
+    code: "KENTE-3492",
     name: "Tontine Kenté",
     description: "Épargne hebdo pour les commerçantes de Cotonou.",
     members: [
@@ -84,6 +87,7 @@ export const initialTontines: Tontine[] = [
 export const availableTontines: Tontine[] = [
   {
     id: "a-baobab",
+    code: "BAOB-1147",
     name: "Cercle Baobab",
     description: "Étudiants & jeunes pros, paiements mensuels.",
     members: [],
@@ -95,6 +99,7 @@ export const availableTontines: Tontine[] = [
   },
   {
     id: "a-zinli",
+    code: "ZINLI-9038",
     name: "Tontine Zinli",
     description: "Inspirée des chants Zinli, rythme hebdomadaire.",
     members: [],
@@ -106,6 +111,7 @@ export const availableTontines: Tontine[] = [
   },
   {
     id: "a-akwaba",
+    code: "AKWA-5510",
     name: "Akwaba Savings",
     description: "Tontine ouverte à la diaspora ouest-africaine.",
     members: [],
@@ -117,6 +123,7 @@ export const availableTontines: Tontine[] = [
   },
   {
     id: "a-cauris2",
+    code: "CAUR2-2284",
     name: "Petits Cauris",
     description: "Micro-épargne pour étudiants.",
     members: [],
@@ -128,6 +135,7 @@ export const availableTontines: Tontine[] = [
   },
   {
     id: "a-vodun",
+    code: "VODUN-6601",
     name: "Cercle Vodún",
     description: "Tontine longue durée, fort engagement.",
     members: [],
