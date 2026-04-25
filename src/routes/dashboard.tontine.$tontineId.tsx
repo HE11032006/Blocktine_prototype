@@ -1,7 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "@/lib/app-context";
-import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Crown, Users } from "lucide-react";
 import type { MemberStatus } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
@@ -239,7 +239,99 @@ function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
           {t.members.length}/{t.capacity} membres · {t.cycle === "weekly" ? "Cycle hebdo" : "Cycle mensuel"}
         </p>
       </div>
+
+      {/* Members directory (visible to members) */}
+      <div className="tc-card p-6 lg:col-span-3">
+        <MembersDirectory members={t.members} />
+      </div>
     </div>
+  );
+}
+
+function MembersDirectory({ members }: { members: import("@/lib/mock-data").Member[] }) {
+  const [filter, setFilter] = useState<"all" | "paid" | "not-paid">("all");
+  const creatorId = members[0]?.id;
+  const meId = members.find((m) => m.name === "Vous")?.id;
+
+  const filtered = members.filter((m) =>
+    filter === "all" ? true : filter === "paid" ? m.status === "paid" : m.status !== "paid"
+  );
+
+  const paidCount = members.filter((m) => m.status === "paid").length;
+
+  return (
+    <>
+      <div className="flex flex-wrap items-baseline justify-between gap-3 mb-4">
+        <div>
+          <h3 className="font-display text-2xl flex items-center gap-2">
+            <Users className="h-5 w-5 text-primary" /> Membres du cercle
+          </h3>
+          <p className="text-xs text-muted-foreground mt-1">
+            {paidCount} sur {members.length} sont à jour ce cycle.
+          </p>
+        </div>
+        <div className="inline-flex p-1 rounded-full bg-secondary border border-border">
+          {([
+            { v: "all", l: "Tous" },
+            { v: "paid", l: "À jour" },
+            { v: "not-paid", l: "Pas à jour" },
+          ] as const).map((opt) => (
+            <button
+              key={opt.v}
+              onClick={() => setFilter(opt.v)}
+              className={`px-3.5 py-1.5 rounded-full text-[0.7rem] font-medium transition-all ${
+                filter === opt.v
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {opt.l}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="text-sm text-muted-foreground text-center py-8">Aucun membre dans cette catégorie.</p>
+      ) : (
+        <ul className="grid sm:grid-cols-2 gap-2">
+          {filtered.map((m) => {
+            const isCreator = m.id === creatorId;
+            const isMe = m.id === meId;
+            return (
+              <li
+                key={m.id}
+                className={`flex items-center justify-between gap-3 p-3 rounded-lg border ${
+                  isMe ? "border-primary/40 bg-primary/5" : "border-border bg-secondary/30"
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="h-9 w-9 shrink-0 rounded-full grid place-items-center bg-secondary text-primary font-display relative">
+                    {m.name[0]}
+                    {isCreator && (
+                      <Crown className="absolute -top-1.5 -right-1.5 h-3.5 w-3.5 text-primary" aria-label="Créatrice" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium truncate flex items-center gap-2">
+                      {m.name}
+                      {isMe && (
+                        <span className="text-[0.6rem] uppercase tracking-widest text-primary">vous</span>
+                      )}
+                      {isCreator && !isMe && (
+                        <span className="text-[0.6rem] uppercase tracking-widest text-primary">créatrice</span>
+                      )}
+                    </p>
+                    <p className="font-mono text-[0.7rem] text-muted-foreground truncate">{m.wallet}</p>
+                  </div>
+                </div>
+                <StatusBadge status={m.status} />
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </>
   );
 }
 
