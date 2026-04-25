@@ -1,0 +1,221 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import { useApp } from "@/lib/app-context";
+import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import type { MemberStatus } from "@/lib/mock-data";
+
+export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
+  head: () => ({ meta: [{ title: "Détail tontine — TontineChain" }] }),
+  component: TontineDetail,
+});
+
+function TontineDetail() {
+  const { tontineId } = Route.useParams();
+  const { tontines } = useApp();
+  const t = tontines.find((x) => x.id === tontineId);
+  const [view, setView] = useState<"creator" | "member">(t?.role === "creator" ? "creator" : "member");
+
+  if (!t) {
+    return (
+      <div className="max-w-2xl mx-auto text-center py-20">
+        <h1 className="font-display text-4xl">Tontine introuvable</h1>
+        <Link to="/dashboard" className="btn-pill-primary mt-6 inline-flex">
+          Retour au tableau de bord
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-5xl mx-auto">
+      <Link to="/dashboard" className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-primary mb-6">
+        <ArrowLeft className="h-3.5 w-3.5" /> Retour
+      </Link>
+
+      {/* Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+        <div>
+          <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">
+            {t.cycle === "weekly" ? "Hebdomadaire" : "Mensuel"} · {t.amount} MATIC
+          </span>
+          <h1 className="font-display text-5xl mt-1">{t.name}</h1>
+          <p className="text-muted-foreground mt-2 max-w-xl">{t.description}</p>
+        </div>
+        <span className="hero-badge">
+          <ShieldCheck className="h-3 w-3 mr-1" /> Sécurisée par smart contracts Polygon
+        </span>
+      </div>
+
+      {/* Tabs */}
+      <div className="inline-flex p-1 rounded-full bg-secondary border border-border mb-6">
+        {(["creator", "member"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`px-5 py-2 rounded-full text-xs font-medium transition-all ${
+              view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            Vue {v === "creator" ? "créatrice" : "membre"}
+          </button>
+        ))}
+      </div>
+
+      {view === "creator" ? <CreatorView t={t} /> : <MemberView t={t} />}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: MemberStatus }) {
+  const map = {
+    paid: { icon: <CheckCircle2 className="h-3 w-3" />, label: "À jour", cls: "text-primary bg-primary/10" },
+    pending: { icon: <Clock className="h-3 w-3" />, label: "En attente", cls: "text-muted-foreground bg-secondary" },
+    late: { icon: <AlertCircle className="h-3 w-3" />, label: "En retard", cls: "text-destructive bg-destructive/10" },
+  } as const;
+  const v = map[status];
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.65rem] font-medium ${v.cls}`}>
+      {v.icon} {v.label}
+    </span>
+  );
+}
+
+function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
+  const paidCount = t.members.filter((m) => m.status === "paid").length;
+  const pct = t.members.length ? Math.round((paidCount / t.members.length) * 100) : 0;
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-5">
+      {/* Members */}
+      <div className="tc-card p-6 lg:col-span-2">
+        <h3 className="font-display text-2xl mb-4">Membres</h3>
+        <ul className="divide-y divide-border">
+          {t.members.map((m) => (
+            <li key={m.id} className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-full grid place-items-center bg-secondary text-primary font-display">
+                  {m.name[0]}
+                </div>
+                <div>
+                  <p className="text-sm font-medium">{m.name}</p>
+                  <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
+                </div>
+              </div>
+              <StatusBadge status={m.status} />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Tracker */}
+      <div className="tc-card p-6">
+        <h3 className="font-display text-2xl mb-4">Contributions</h3>
+        <div className="flex items-baseline gap-2">
+          <span className="stat-num">{pct}%</span>
+          <span className="text-xs text-muted-foreground">à jour</span>
+        </div>
+        <div className="mt-3 h-1.5 w-full rounded-full bg-secondary overflow-hidden">
+          <div className="h-full bg-primary rounded-full" style={{ width: `${pct}%` }} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          {paidCount}/{t.members.length} membres ont payé ce cycle.
+        </p>
+      </div>
+
+      {/* Tx history */}
+      <div className="tc-card p-6 lg:col-span-3">
+        <h3 className="font-display text-2xl mb-4">Historique des transactions</h3>
+        {t.transactions.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Aucune transaction pour l'instant.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">
+                  <th className="text-left pb-3 font-medium">Hash</th>
+                  <th className="text-left pb-3 font-medium">Membre</th>
+                  <th className="text-left pb-3 font-medium">Type</th>
+                  <th className="text-right pb-3 font-medium">Montant</th>
+                  <th className="text-right pb-3 font-medium">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {t.transactions.map((tx) => (
+                  <tr key={tx.id}>
+                    <td className="py-3 font-mono text-xs text-primary">{tx.hash}</td>
+                    <td>{tx.member}</td>
+                    <td className="text-muted-foreground capitalize">{tx.type}</td>
+                    <td className="text-right font-display text-lg text-primary">{tx.amount} MATIC</td>
+                    <td className="text-right text-xs text-muted-foreground">{tx.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
+  const me = t.members.find((m) => m.name === "Vous") ?? t.members[0];
+  const schedule = Array.from({ length: 5 }).map((_, i) => ({
+    cycle: i + 1,
+    date: `${10 + i * (t.cycle === "weekly" ? 7 : 30)} mai`,
+    paid: i < 2,
+  }));
+
+  return (
+    <div className="grid lg:grid-cols-3 gap-5">
+      {/* My status */}
+      <div className="tc-card p-6 lg:col-span-1">
+        <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Mon statut</span>
+        <div className="mt-2"><StatusBadge status={me?.status ?? "pending"} /></div>
+        <div className="mt-6">
+          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Prochaine échéance</span>
+          <p className="font-display text-3xl text-primary mt-1">{t.nextDue ?? "—"}</p>
+          <p className="text-xs text-muted-foreground mt-1">Montant : {t.amount} MATIC</p>
+        </div>
+        <button className="btn-pill-primary w-full justify-center mt-6">Effectuer le paiement</button>
+      </div>
+
+      {/* Schedule */}
+      <div className="tc-card p-6 lg:col-span-2">
+        <h3 className="font-display text-2xl mb-4 flex items-center gap-2">
+          <Calendar className="h-5 w-5 text-primary" /> Calendrier
+        </h3>
+        <ul className="space-y-2">
+          {schedule.map((s) => (
+            <li
+              key={s.cycle}
+              className="flex items-center justify-between p-3 rounded-lg bg-secondary border border-border"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-8 w-8 rounded-full grid place-items-center bg-background font-display text-primary">
+                  {s.cycle}
+                </div>
+                <span className="text-sm">{s.date}</span>
+              </div>
+              <StatusBadge status={s.paid ? "paid" : "pending"} />
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Group progress */}
+      <div className="tc-card p-6 lg:col-span-3">
+        <div className="flex items-baseline justify-between mb-3">
+          <h3 className="font-display text-2xl">Progression du cercle</h3>
+          <span className="stat-num">{t.progress ?? 0}%</span>
+        </div>
+        <div className="h-2 w-full rounded-full bg-secondary overflow-hidden">
+          <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${t.progress ?? 0}%` }} />
+        </div>
+        <p className="text-xs text-muted-foreground mt-3">
+          {t.members.length}/{t.capacity} membres · {t.cycle === "weekly" ? "Cycle hebdo" : "Cycle mensuel"}
+        </p>
+      </div>
+    </div>
+  );
+}
