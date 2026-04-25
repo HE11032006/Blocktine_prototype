@@ -104,25 +104,30 @@ function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
 
   return (
     <div className="grid lg:grid-cols-3 gap-5">
-      {/* Members */}
+      {/* Members grouped by status */}
       <div className="tc-card p-6 lg:col-span-2">
-        <h3 className="font-display text-2xl mb-4">Membres</h3>
-        <ul className="divide-y divide-border">
-          {t.members.map((m) => (
-            <li key={m.id} className="flex items-center justify-between py-3">
-              <div className="flex items-center gap-3">
-                <div className="h-9 w-9 rounded-full grid place-items-center bg-secondary text-primary font-display">
-                  {m.name[0]}
-                </div>
-                <div>
-                  <p className="text-sm font-medium">{m.name}</p>
-                  <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
-                </div>
-              </div>
-              <StatusBadge status={m.status} />
-            </li>
-          ))}
-        </ul>
+        <div className="flex items-baseline justify-between mb-4">
+          <h3 className="font-display text-2xl">Membres</h3>
+          <span className="text-xs text-muted-foreground">
+            {paidCount} en règle · {t.members.length - paidCount} en attente
+          </span>
+        </div>
+
+        <MemberGroup
+          label="✓ En règle"
+          tone="ok"
+          members={t.members.filter((m) => m.status === "paid")}
+        />
+        <MemberGroup
+          label="⏱ En attente"
+          tone="muted"
+          members={t.members.filter((m) => m.status === "pending")}
+        />
+        <MemberGroup
+          label="⚠ En retard"
+          tone="bad"
+          members={t.members.filter((m) => m.status === "late")}
+        />
       </div>
 
       {/* Tracker */}
