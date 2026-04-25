@@ -242,3 +242,40 @@ function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
     </div>
   );
 }
+
+function MemberGroup({
+  label,
+  tone,
+  members,
+}: {
+  label: string;
+  tone: "ok" | "muted" | "bad";
+  members: import("@/lib/mock-data").Member[];
+}) {
+  if (members.length === 0) return null;
+  const color =
+    tone === "ok" ? "text-primary" : tone === "bad" ? "text-destructive" : "text-muted-foreground";
+  return (
+    <div className="mt-4 first:mt-0">
+      <div className={`text-[0.65rem] uppercase tracking-widest font-semibold ${color} mb-2`}>
+        {label} <span className="text-muted-foreground">· {members.length}</span>
+      </div>
+      <ul className="divide-y divide-border rounded-lg border border-border overflow-hidden">
+        {members.map((m) => (
+          <li key={m.id} className="flex items-center justify-between py-2.5 px-3 bg-secondary/30">
+            <div className="flex items-center gap-3">
+              <div className="h-8 w-8 rounded-full grid place-items-center bg-secondary text-primary font-display">
+                {m.name[0]}
+              </div>
+              <div>
+                <p className="text-sm font-medium">{m.name}</p>
+                <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
+              </div>
+            </div>
+            <StatusBadge status={m.status} />
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
