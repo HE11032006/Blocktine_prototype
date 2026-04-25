@@ -20,6 +20,7 @@ export interface Transaction {
 
 export interface Tontine {
   id: string;
+  code: string;
   name: string;
   description: string;
   members: Member[];
