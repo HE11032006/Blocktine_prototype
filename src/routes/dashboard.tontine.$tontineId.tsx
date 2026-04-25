@@ -33,7 +33,7 @@ function TontineDetail() {
       </Link>
 
       {/* Header */}
-      <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">
             {t.cycle === "weekly" ? "Hebdomadaire" : "Mensuel"} · {t.amount} MATIC
@@ -44,6 +44,24 @@ function TontineDetail() {
         <span className="hero-badge">
           <ShieldCheck className="h-3 w-3 mr-1" /> Sécurisée par smart contracts Polygon
         </span>
+      </div>
+
+      {/* Code + members summary strip */}
+      <div className="grid sm:grid-cols-3 gap-3 mb-6">
+        <div className="tc-card p-4 sm:col-span-1">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Code de la tontine</span>
+          <p className="font-display text-2xl text-primary tracking-wider mt-0.5">{t.code}</p>
+        </div>
+        <div className="tc-card p-4">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Membres</span>
+          <p className="font-display text-2xl text-primary mt-0.5">{t.members.length} / {t.capacity}</p>
+        </div>
+        <div className="tc-card p-4">
+          <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">En règle</span>
+          <p className="font-display text-2xl text-primary mt-0.5">
+            {t.members.filter((m) => m.status === "paid").length} / {t.members.length}
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
