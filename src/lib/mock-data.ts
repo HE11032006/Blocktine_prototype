@@ -25,9 +25,13 @@ export interface Tontine {
   description: string;
   members: Member[];
   capacity: number;
+  isUnlimitedCapacity?: boolean;
   amount: number; // MATIC per cycle
   cycle: Cycle;
   role: "creator" | "member" | "available";
+  visibility: "public" | "private";
+  startDate: string;
+  rules: string;
   nextDue?: string;
   progress?: number; // 0-100
   transactions: Transaction[];
@@ -61,6 +65,9 @@ export const initialTontines: Tontine[] = [
     amount: 50,
     cycle: "monthly",
     role: "creator",
+    visibility: "public",
+    startDate: "2025-05-10",
+    rules: "Tout retard de paiement entraîne une pénalité de 5% du montant du cycle.",
     nextDue: "12 mai 2025",
     progress: 62,
     transactions: sampleTx(12, 50),
@@ -80,6 +87,9 @@ export const initialTontines: Tontine[] = [
     amount: 25,
     cycle: "weekly",
     role: "member",
+    visibility: "private",
+    startDate: "2025-04-20",
+    rules: "Les membres doivent être approuvés par le créateur.",
     nextDue: "29 avril 2025",
     progress: 45,
     transactions: sampleTx(8, 25),
@@ -98,6 +108,9 @@ export const initialTontines: Tontine[] = [
     amount: 100,
     cycle: "weekly",
     role: "member",
+    visibility: "public",
+    startDate: "2025-05-01",
+    rules: "L'ordre de paiement est décidé au premier jour de la tontine.",
     nextDue: "5 mai 2025",
     progress: 80,
     transactions: sampleTx(15, 100),
@@ -115,6 +128,9 @@ export const availableTontines: Tontine[] = [
     amount: 30,
     cycle: "monthly",
     role: "available",
+    visibility: "public",
+    startDate: "2026-06-01",
+    rules: "Paiement obligatoire avant le 5 de chaque mois.",
     transactions: [],
   },
   {
@@ -127,6 +143,9 @@ export const availableTontines: Tontine[] = [
     amount: 20,
     cycle: "weekly",
     role: "available",
+    visibility: "public",
+    startDate: "2026-06-15",
+    rules: "La régularité est la clé de voûte de cette tontine.",
     transactions: [],
   },
   {
@@ -139,6 +158,9 @@ export const availableTontines: Tontine[] = [
     amount: 75,
     cycle: "monthly",
     role: "available",
+    visibility: "public",
+    startDate: "2026-07-01",
+    rules: "Aucun retard toléré pour la diaspora.",
     transactions: [],
   },
   {
@@ -151,6 +173,9 @@ export const availableTontines: Tontine[] = [
     amount: 10,
     cycle: "weekly",
     role: "available",
+    visibility: "public",
+    startDate: "2026-06-10",
+    rules: "Participation active requise.",
     transactions: [],
   },
   {
@@ -163,6 +188,9 @@ export const availableTontines: Tontine[] = [
     amount: 100,
     cycle: "monthly",
     role: "available",
+    visibility: "public",
+    startDate: "2026-08-01",
+    rules: "Engagement formel demandé.",
     transactions: [],
   },
 ];

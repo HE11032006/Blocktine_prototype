@@ -24,9 +24,9 @@ interface AppState {
   signup: (name: string, email: string, pass: string) => boolean;
   logout: () => void;
   toggleTheme: () => void;
-  createTontine: (data: { name: string; capacity: number; amount: number; cycle: Cycle }) => Promise<string>;
+  createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string; rules: string }) => Promise<string>;
   joinTontine: (id: string) => Promise<void>;
-  joinByCode: (code: string) => Promise<"success" | "already" | "not_found">;
+  getTontineByCode: (code: string) => Promise<Tontine | "already" | "not_found">;
   setSettings: (s: Partial<Settings>) => void;
 }
 
@@ -120,7 +120,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("tc-current-user");
       },
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      createTontine: async ({ name, capacity, amount, cycle }) => {
+      createTontine: async ({ name, capacity, isUnlimitedCapacity, amount, cycle, visibility, startDate, rules }) => {
         setIsLoading(true);
         await new Promise((r) => setTimeout(r, 800)); // Simulate network
         const id = `t-${Date.now().toString(36)}`;
@@ -132,14 +132,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           description: "Nouvelle tontine créée par vous.",
           members: [{ id: "m1", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "paid" }],
           capacity,
+          isUnlimitedCapacity,
           amount,
           cycle,
           role: "creator",
+          visibility,
+          startDate,
+          rules,
           nextDue: cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
           progress: 0,
           transactions: [],
         };
         setTontines((arr) => [t, ...arr]);
+        if (visibility === "public") {
+          setAvailable((arr) => [{ ...t, role: "available", members: [] }, ...arr]);
+        }
         setIsLoading(false);
         return id;
       },
@@ -164,31 +171,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTontines((arr) => [joined, ...arr]);
         setAvailable((arr) => arr.filter((a) => a.id !== id));
         setIsLoading(false);
+        return true;
       },
-      joinByCode: async (code) => {
+      getTontineByCode: async (code) => {
         setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 1200)); // Search simulation
-        // First look in available, then check if it's one of the current (to mock finding any)
+        await new Promise((r) => setTimeout(r, 600)); // Search simulation
         const found = [...available, ...tontines].find((a) => a.code === code);
         if (found) {
-          if (tontines.some(t => t.id === found.id)) {
+          if (tontines.some(t => t.id === found.id && t.role !== "available")) {
             setIsLoading(false);
             return "already";
           }
-          const joined: Tontine = {
-            ...found,
-            role: "member",
-            nextDue: found.cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
-            progress: 5,
-            members: [
-              { id: "me", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "pending" },
-              ...fillMembers(found.capacity, found.members.length),
-            ],
-          };
-          setTontines((arr) => [joined, ...arr]);
-          setAvailable((arr) => arr.filter((a) => a.id !== found.id));
           setIsLoading(false);
-          return "success";
+          return found;
         }
         setIsLoading(false);
         return "not_found";

@@ -17,6 +17,10 @@ function CreatePage() {
   const [amount, setAmount] = useState(50);
   const [initialDeposit, setInitialDeposit] = useState(50);
   const [cycle, setCycle] = useState<"weekly" | "monthly">("monthly");
+  const [visibility, setVisibility] = useState<"public" | "private">("private");
+  const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(false);
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [rules, setRules] = useState("Respect mutuel et ponctualité exigés. Tout retard peut entraîner une pénalité.");
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -24,7 +28,16 @@ function CreatePage() {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = await createTontine({ name: name || "Nouvelle tontine", capacity, amount, cycle });
+    const id = await createTontine({ 
+      name: name || "Nouvelle tontine", 
+      capacity: isUnlimitedCapacity ? 9999 : capacity, 
+      isUnlimitedCapacity,
+      amount, 
+      cycle,
+      visibility,
+      startDate,
+      rules
+    });
     toast.success("Tontine créée ✦", {
       description: `Dépôt initial de ${initialDeposit} MATIC enregistré.`,
     });
@@ -63,19 +76,79 @@ function CreatePage() {
         </label>
 
         <div>
-          <div className="flex justify-between items-baseline">
-            <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Nombre de membres</span>
-            <span className="font-display text-2xl text-primary">{capacity}</span>
+          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground block mb-2">Visibilité</span>
+          <div className="grid grid-cols-2 gap-2">
+            {(["public", "private"] as const).map((v) => (
+              <button
+                type="button"
+                key={v}
+                onClick={() => setVisibility(v)}
+                className={`px-4 py-3 rounded-lg border text-sm font-medium transition-all ${
+                  visibility === v
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                }`}
+              >
+                {v === "public" ? "Publique (Visible dans Rejoindre)" : "Privée (Sur invitation)"}
+              </button>
+            ))}
           </div>
-          <input
-            type="range"
-            min={3}
-            max={20}
-            value={capacity}
-            onChange={(e) => setCapacity(Number(e.target.value))}
-            className="mt-2 w-full accent-primary"
-          />
         </div>
+
+        <div>
+          <div className="flex justify-between items-baseline mb-2">
+            <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Nombre de membres max</span>
+            {!isUnlimitedCapacity && <span className="font-display text-2xl text-primary">{capacity}</span>}
+          </div>
+          {visibility === "private" && (
+            <label className="flex items-center gap-2 mb-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isUnlimitedCapacity}
+                onChange={(e) => setIsUnlimitedCapacity(e.target.checked)}
+                className="accent-primary w-4 h-4"
+              />
+              <span className="text-sm text-muted-foreground">Nombre de membres illimité</span>
+            </label>
+          )}
+          
+          {!isUnlimitedCapacity && (
+            <input
+              type="range"
+              min={3}
+              max={50}
+              value={capacity}
+              onChange={(e) => setCapacity(Number(e.target.value))}
+              className="w-full accent-primary"
+            />
+          )}
+        </div>
+
+        <label className="block">
+          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Date de début</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            required
+          />
+          <span className="text-[0.7rem] text-muted-foreground mt-1.5 block">
+            ✦ Date à laquelle les inscriptions se clôturent et le premier cycle démarre.
+          </span>
+        </label>
+
+        <label className="block">
+          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Règles et sanctions</span>
+          <textarea
+            value={rules}
+            onChange={(e) => setRules(e.target.value)}
+            rows={3}
+            className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary resize-none"
+            placeholder="Ex: Tout retard entraînera..."
+            required
+          />
+        </label>
 
         <label className="block">
           <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">
@@ -176,7 +249,7 @@ function CreatePage() {
               </div>
               <div className="p-3 rounded-lg bg-secondary/60">
                 <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Membres</p>
-                <p className="font-display text-xl text-primary mt-0.5">1 / {created.capacity}</p>
+                <p className="font-display text-xl text-primary mt-0.5">1 / {created.isUnlimitedCapacity ? "∞" : created.capacity}</p>
               </div>
             </div>
 
