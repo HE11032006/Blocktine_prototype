@@ -18,7 +18,7 @@ Si vous ne les avez pas encore :
 Une fois les prerequis installes, suivez ces etapes :
 
 1. Ouvrez un terminal dans le dossier racine du projet (la ou se trouve ce fichier README).
-2. Executez la commande suivante pour installer toutes les dependances necessaires :
+2. Executez la commande suivante pour installer toutes les dependances necessaires:
    ```bash
    npm install
    ```
