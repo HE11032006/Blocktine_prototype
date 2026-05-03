@@ -149,11 +149,14 @@ function JoinPage() {
               </div>
             </div>
 
-            <div className="mt-4 p-4 rounded-lg bg-secondary border border-border text-left">
-              <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground block mb-1">Règles et sanctions</span>
-              <p className="text-sm italic text-foreground leading-relaxed">
-                « {selected.rules || "Aucune règle spécifique n'a été définie."} »
-              </p>
+            <div className="mt-4 p-4 rounded-lg bg-primary/10 border border-primary/20 text-left">
+              <span className="text-[0.65rem] uppercase tracking-widest text-primary font-semibold block mb-2">Politique du Smart Contract (Polygon)</span>
+              <ul className="text-xs text-muted-foreground space-y-1.5 list-disc pl-4">
+                <li>Les fonds sont bloqués de manière immuable sur la blockchain.</li>
+                <li><strong>Avertissement :</strong> Émis automatiquement au premier retard.</li>
+                <li><strong>Sanction :</strong> Pénalité de 5% du dépôt après 2 retards consécutifs.</li>
+                <li><strong>Exclusion :</strong> Perte des fonds au profit du cercle en cas d'abandon.</li>
+              </ul>
             </div>
 
             <div className="mt-4 text-left">
@@ -165,7 +168,7 @@ function JoinPage() {
                   className="mt-1 accent-primary w-4 h-4"
                 />
                 <span className="text-sm text-muted-foreground">
-                  J'ai lu et j'accepte les règles de ce cercle. Je m'engage à respecter la fréquence de {selected.cycle === "weekly" ? "paiement hebdomadaire" : "paiement mensuel"}.
+                  J'accepte la politique du Smart Contract et je m'engage à respecter la fréquence de {selected.cycle === "weekly" ? "paiement hebdomadaire" : "paiement mensuel"}.
                 </span>
               </label>
             </div>

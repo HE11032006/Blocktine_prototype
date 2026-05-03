@@ -24,9 +24,10 @@ interface AppState {
   signup: (name: string, email: string, pass: string) => boolean;
   logout: () => void;
   toggleTheme: () => void;
-  createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string; rules: string }) => Promise<string>;
+  createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
   joinTontine: (id: string) => Promise<void>;
   getTontineByCode: (code: string) => Promise<Tontine | "already" | "not_found">;
+  simulatePenalty: (tontineId: string, memberId: string) => void;
   setSettings: (s: Partial<Settings>) => void;
 }
 
@@ -120,7 +121,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         localStorage.removeItem("tc-current-user");
       },
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      createTontine: async ({ name, capacity, isUnlimitedCapacity, amount, cycle, visibility, startDate, rules }) => {
+      createTontine: async ({ name, capacity, isUnlimitedCapacity, amount, cycle, visibility, startDate }) => {
         setIsLoading(true);
         await new Promise((r) => setTimeout(r, 800)); // Simulate network
         const id = `t-${Date.now().toString(36)}`;
@@ -138,7 +139,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           role: "creator",
           visibility,
           startDate,
-          rules,
+          rules: "Règles Smart Contract Polygon :\n- Retard au 1er cycle : Avertissement.\n- Retard au 2e cycle : Pénalité de 5% du dépôt.\n- 3e retard ou non-paiement prolongé : Exclusion et confiscation des fonds pour dédommager le cercle.",
           nextDue: cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
           progress: 0,
           transactions: [],
@@ -187,6 +188,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }
         setIsLoading(false);
         return "not_found";
+      },
+      simulatePenalty: (tontineId, memberId) => {
+        setTontines(prev => prev.map(t => {
+          if (t.id !== tontineId) return t;
+          return {
+            ...t,
+            members: t.members.map(m => {
+              if (m.id !== memberId) return m;
+              let nextStatus: "paid" | "pending" | "late" | "warning" | "banned" = "late";
+              if (m.status === "paid" || m.status === "pending") nextStatus = "late";
+              else if (m.status === "late") nextStatus = "warning";
+              else if (m.status === "warning") nextStatus = "banned";
+              
+              return { ...m, status: nextStatus };
+            })
+          };
+        }));
       },
       setSettings: (s) => setSettingsState((prev) => ({ ...prev, ...s })),
     }),

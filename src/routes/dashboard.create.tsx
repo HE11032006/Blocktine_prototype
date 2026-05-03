@@ -20,7 +20,6 @@ function CreatePage() {
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
-  const [rules, setRules] = useState("Respect mutuel et ponctualité exigés. Tout retard peut entraîner une pénalité.");
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -35,8 +34,7 @@ function CreatePage() {
       amount, 
       cycle,
       visibility,
-      startDate,
-      rules
+      startDate
     });
     toast.success("Tontine créée ✦", {
       description: `Dépôt initial de ${initialDeposit} MATIC enregistré.`,
@@ -138,17 +136,15 @@ function CreatePage() {
           </span>
         </label>
 
-        <label className="block">
-          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Règles et sanctions</span>
-          <textarea
-            value={rules}
-            onChange={(e) => setRules(e.target.value)}
-            rows={3}
-            className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary resize-none"
-            placeholder="Ex: Tout retard entraînera..."
-            required
-          />
-        </label>
+        <div className="p-4 rounded-lg bg-primary/10 border border-primary/20">
+          <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold block mb-2">Politique du Smart Contract</span>
+          <ul className="text-sm text-muted-foreground space-y-2 list-disc pl-4">
+            <li>Les fonds sont sécurisés et bloqués sur la blockchain <strong>Polygon</strong>.</li>
+            <li>En cas de retard, des avertissements sont émis automatiquement.</li>
+            <li>Au-delà de 2 retards consécutifs, une pénalité de 5% est prélevée.</li>
+            <li>Le non-paiement entraîne l'exclusion et la redistribution des fonds aux membres.</li>
+          </ul>
+        </div>
 
         <label className="block">
           <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">

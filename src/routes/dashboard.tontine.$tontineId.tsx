@@ -2,7 +2,7 @@ import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
-import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Crown, Users } from "lucide-react";
+import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Crown, Users, XCircle } from "lucide-react";
 import type { MemberStatus } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
@@ -101,7 +101,9 @@ function StatusBadge({ status }: { status: MemberStatus }) {
   const map = {
     paid: { icon: <CheckCircle2 className="h-3 w-3" />, label: "À jour", cls: "text-primary bg-primary/10" },
     pending: { icon: <Clock className="h-3 w-3" />, label: "En attente", cls: "text-muted-foreground bg-secondary" },
-    late: { icon: <AlertCircle className="h-3 w-3" />, label: "En retard", cls: "text-destructive bg-destructive/10" },
+    late: { icon: <AlertCircle className="h-3 w-3" />, label: "En retard", cls: "text-[#f59e0b] bg-[#f59e0b]/10" },
+    warning: { icon: <AlertCircle className="h-3 w-3" />, label: "Pénalité (5%)", cls: "text-[#f59e0b] bg-[#f59e0b]/20 border border-[#f59e0b]/30" },
+    banned: { icon: <XCircle className="h-3 w-3" />, label: "Banni / Exclu", cls: "text-destructive bg-destructive/10 border border-destructive/30" },
   } as const;
   const v = map[status];
   return (
@@ -130,16 +132,31 @@ function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
           label="✓ En règle"
           tone="ok"
           members={t.members.filter((m) => m.status === "paid")}
+          tontineId={t.id}
         />
         <MemberGroup
           label="⏱ En attente"
           tone="muted"
           members={t.members.filter((m) => m.status === "pending")}
+          tontineId={t.id}
         />
         <MemberGroup
           label="⚠ En retard"
           tone="bad"
           members={t.members.filter((m) => m.status === "late")}
+          tontineId={t.id}
+        />
+        <MemberGroup
+          label="⚠ Avertissement / Pénalité"
+          tone="warning"
+          members={t.members.filter((m) => m.status === "warning")}
+          tontineId={t.id}
+        />
+        <MemberGroup
+          label="⛔ Bannis / Exclus"
+          tone="banned"
+          members={t.members.filter((m) => m.status === "banned")}
+          tontineId={t.id}
         />
       </div>
 
@@ -342,13 +359,14 @@ function MemberView({
 
       {/* Members directory (visible to members) */}
       <div className="tc-card p-6 lg:col-span-3">
-        <MembersDirectory members={t.members} />
+        <MembersDirectory members={t.members} tontineId={t.id} />
       </div>
     </div>
   );
 }
 
-function MembersDirectory({ members }: { members: import("@/lib/mock-data").Member[] }) {
+function MembersDirectory({ members, tontineId }: { members: import("@/lib/mock-data").Member[], tontineId: string }) {
+  const { simulatePenalty } = useApp();
   const [filter, setFilter] = useState<"all" | "paid" | "not-paid">("all");
   const creatorId = members[0]?.id;
   const meId = members.find((m) => m.name === "Vous")?.id;
@@ -425,7 +443,18 @@ function MembersDirectory({ members }: { members: import("@/lib/mock-data").Memb
                     <p className="font-mono text-[0.7rem] text-muted-foreground truncate">{m.wallet}</p>
                   </div>
                 </div>
-                <StatusBadge status={m.status} />
+                <div className="flex items-center gap-2">
+                  <StatusBadge status={m.status} />
+                  {m.name !== "Vous" && m.status !== "banned" && (
+                    <button
+                      onClick={() => simulatePenalty(tontineId, m.id)}
+                      title="Simuler sanction (Smart Contract)"
+                      className="p-1.5 rounded-md bg-secondary border border-border hover:border-[#f59e0b] hover:text-[#f59e0b] transition-all"
+                    >
+                      <AlertCircle className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
               </li>
             );
           })}
@@ -439,14 +468,17 @@ function MemberGroup({
   label,
   tone,
   members,
+  tontineId,
 }: {
   label: string;
-  tone: "ok" | "muted" | "bad";
+  tone: "ok" | "muted" | "bad" | "warning" | "banned";
   members: import("@/lib/mock-data").Member[];
+  tontineId: string;
 }) {
+  const { simulatePenalty } = useApp();
   if (members.length === 0) return null;
   const color =
-    tone === "ok" ? "text-primary" : tone === "bad" ? "text-destructive" : "text-muted-foreground";
+    tone === "ok" ? "text-primary" : tone === "bad" ? "text-[#f59e0b]" : tone === "warning" ? "text-[#f59e0b]" : tone === "banned" ? "text-destructive" : "text-muted-foreground";
   return (
     <div className="mt-4 first:mt-0">
       <div className={`text-[0.65rem] uppercase tracking-widest font-semibold ${color} mb-2`}>
@@ -464,7 +496,18 @@ function MemberGroup({
                 <p className="font-mono text-[0.7rem] text-muted-foreground">{m.wallet}</p>
               </div>
             </div>
-            <StatusBadge status={m.status} />
+            <div className="flex items-center gap-2">
+              <StatusBadge status={m.status} />
+              {m.name !== "Vous" && m.status !== "banned" && (
+                <button
+                  onClick={() => simulatePenalty(tontineId, m.id)}
+                  title="Simuler sanction (Smart Contract)"
+                  className="p-1.5 rounded-md bg-background hover:bg-secondary hover:text-[#f59e0b] transition-colors"
+                >
+                  <AlertCircle className="h-3 w-3" />
+                </button>
+              )}
+            </div>
           </li>
         ))}
       </ul>

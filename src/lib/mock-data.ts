@@ -1,5 +1,5 @@
 export type TontineStatus = "active" | "open";
-export type MemberStatus = "paid" | "pending" | "late";
+export type MemberStatus = "paid" | "pending" | "late" | "warning" | "banned";
 export type Cycle = "weekly" | "monthly";
 
 export interface Member {
