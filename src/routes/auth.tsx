@@ -48,10 +48,10 @@ function AuthPage() {
         toast.error("Les mots de passe ne correspondent pas");
         return;
       }
-      const success = signup(name, email, password);
-      if (success) {
-        toast.success("Compte créé avec succès !");
-        setTimeout(() => navigate({ to: "/dashboard" }), 100);
+      const signupSuccess = signup(name, email, password);
+      if (signupSuccess) {
+        toast.success("Compte créé avec succès ! Connectez-vous maintenant.");
+        setTimeout(() => navigate({ to: "/auth", search: { mode: "login" } }), 500);
       } else {
         toast.error("Cet email est déjà utilisé");
       }

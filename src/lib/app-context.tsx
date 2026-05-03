@@ -108,9 +108,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
           localStorage.setItem("tc-accounts", JSON.stringify(accounts));
           console.log("Nouveau compte créé:", name);
           
-          const u = { name: newAcc.name, email: newAcc.email, wallet: newAcc.wallet };
-          setUser(u);
-          localStorage.setItem("tc-current-user", JSON.stringify(u));
           return true;
         } catch (e) {
           console.error("Erreur signup:", e);
