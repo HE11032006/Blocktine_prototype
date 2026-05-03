@@ -173,7 +173,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTontines((arr) => [joined, ...arr]);
         setAvailable((arr) => arr.filter((a) => a.id !== id));
         setIsLoading(false);
-        return true;
+
       },
       leaveTontine: async (id) => {
         setIsLoading(true);
