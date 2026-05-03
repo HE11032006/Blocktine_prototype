@@ -14,16 +14,22 @@ function JoinPage() {
   const { available, joinTontine, getTontineByCode, isLoading } = useApp();
   const [selected, setSelected] = useState<Tontine | null>(null);
   const [rulesAccepted, setRulesAccepted] = useState(false);
+  const [selectedRank, setSelectedRank] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const confirm = async () => {
     if (!selected) return;
-    await joinTontine(selected.id);
+    if (!selected.isUnlimitedCapacity && !selectedRank) {
+      toast.error("Veuillez choisir un ordre de passage");
+      return;
+    }
+    await joinTontine(selected.id, selectedRank || 0);
     toast.success("Vous avez rejoint la tontine ✦", {
       description: `Bienvenue dans ${selected.name}.`,
     });
     setSelected(null);
     setRulesAccepted(false);
+    setSelectedRank(null);
     navigate({ to: "/dashboard" });
   };
 
@@ -65,6 +71,7 @@ function JoinPage() {
                 toast.error("Code invalide ou tontine introuvable");
               } else {
                 setRulesAccepted(false);
+                setSelectedRank(null);
                 setSelected(res);
               }
             }}
@@ -105,7 +112,7 @@ function JoinPage() {
               )}
             </div>
 
-            <button onClick={() => { setRulesAccepted(false); setSelected(t); }} className="btn-pill-primary mt-5 justify-center">
+            <button onClick={() => { setRulesAccepted(false); setSelectedRank(null); setSelected(t); }} className="btn-pill-primary mt-5 justify-center">
               Rejoindre
             </button>
           </div>
@@ -159,6 +166,37 @@ function JoinPage() {
               </ul>
             </div>
 
+            {/* Choix de l'ordre de passage */}
+            {!selected.isUnlimitedCapacity && (
+              <div className="mt-4 text-left">
+                <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground block mb-2">Choisir son ordre de passage (Rang)</span>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: selected.capacity }).map((_, i) => {
+                    const rank = i + 1;
+                    const isTaken = selected.members.some(m => m.rank === rank);
+                    return (
+                      <button
+                        key={rank}
+                        type="button"
+                        disabled={isTaken}
+                        onClick={() => setSelectedRank(rank)}
+                        className={`h-8 w-8 rounded-full text-xs font-medium transition-all flex items-center justify-center ${
+                          isTaken 
+                            ? "bg-secondary text-muted-foreground/30 cursor-not-allowed opacity-50 relative after:content-[''] after:absolute after:w-full after:h-px after:bg-muted-foreground/30 after:rotate-45" 
+                            : selectedRank === rank 
+                            ? "bg-primary text-primary-foreground shadow-[0_0_10px_rgba(var(--color-or-rgb),0.5)]" 
+                            : "bg-secondary hover:bg-secondary/80 text-foreground"
+                        }`}
+                        title={isTaken ? "Déjà occupé" : "Sélectionner ce rang"}
+                      >
+                        {rank}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             <div className="mt-4 text-left">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
@@ -182,7 +220,7 @@ function JoinPage() {
               <button disabled={isLoading} onClick={() => setSelected(null)} className="btn-pill-secondary flex-1 justify-center disabled:opacity-50">
                 Annuler
               </button>
-              <button disabled={isLoading || !rulesAccepted} onClick={confirm} className="btn-pill-primary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+              <button disabled={isLoading || !rulesAccepted || (!selected.isUnlimitedCapacity && !selectedRank)} onClick={confirm} className="btn-pill-primary flex-1 justify-center disabled:opacity-50 disabled:cursor-not-allowed">
                 {isLoading ? (
                   <span className="h-4 w-4 border-2 border-noir border-t-transparent rounded-full animate-spin" />
                 ) : (

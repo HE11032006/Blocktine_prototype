@@ -7,6 +7,7 @@ export interface Member {
   name: string;
   wallet: string;
   status: MemberStatus;
+  rank?: number;
 }
 
 export interface Transaction {

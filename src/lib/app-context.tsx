@@ -25,7 +25,7 @@ interface AppState {
   logout: () => void;
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
-  joinTontine: (id: string) => Promise<void>;
+  joinTontine: (id: string, rank: number) => Promise<void>;
   getTontineByCode: (code: string) => Promise<Tontine | "already" | "not_found">;
   simulatePenalty: (tontineId: string, memberId: string) => void;
   setSettings: (s: Partial<Settings>) => void;
@@ -151,7 +151,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
         return id;
       },
-      joinTontine: async (id) => {
+      joinTontine: async (id, rank) => {
         setIsLoading(true);
         await new Promise((r) => setTimeout(r, 800)); // Simulate network
         const found = available.find((a) => a.id === id);
@@ -165,7 +165,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           nextDue: found.cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
           progress: 10,
           members: [
-            { id: "me", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "pending" },
+            { id: "me", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "pending", rank },
             ...fillMembers(found.capacity, found.members.length),
           ],
         };
