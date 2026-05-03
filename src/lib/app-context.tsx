@@ -26,6 +26,7 @@ interface AppState {
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
   joinTontine: (id: string, rank: number) => Promise<void>;
+  leaveTontine: (id: string) => Promise<void>;
   getTontineByCode: (code: string) => Promise<Tontine | "already" | "not_found">;
   simulatePenalty: (tontineId: string, memberId: string) => void;
   setSettings: (s: Partial<Settings>) => void;
@@ -173,6 +174,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setAvailable((arr) => arr.filter((a) => a.id !== id));
         setIsLoading(false);
         return true;
+      },
+      leaveTontine: async (id) => {
+        setIsLoading(true);
+        await new Promise((r) => setTimeout(r, 800)); // Simulate tx
+        setTontines((prev) => prev.filter((t) => t.id !== id));
+        setIsLoading(false);
       },
       getTontineByCode: async (code) => {
         setIsLoading(true);

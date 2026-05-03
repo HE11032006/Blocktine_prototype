@@ -1,4 +1,4 @@
-import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { createFileRoute, Link, notFound, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
@@ -224,6 +224,11 @@ function MemberView({
   isPaying: boolean;
   setIsPaying: (v: boolean) => void;
 }) {
+  const { leaveTontine } = useApp();
+  const navigate = useNavigate();
+  const [showLeaveWarning, setShowLeaveWarning] = useState(false);
+  const [isLeaving, setIsLeaving] = useState(false);
+
   const me = t.members.find((m) => m.name === "Vous") ?? t.members[0];
   const schedule = Array.from({ length: 5 }).map((_, i) => ({
     cycle: i + 1,
@@ -248,7 +253,74 @@ function MemberView({
         >
           Effectuer le paiement
         </button>
+        <button
+          onClick={() => setShowLeaveWarning(true)}
+          className="btn-pill-secondary w-full justify-center mt-3 text-destructive border-destructive/20 hover:bg-destructive/10"
+        >
+          Quitter la tontine
+        </button>
       </div>
+
+      {/* Leave Warning Modal */}
+      {showLeaveWarning && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="tc-card max-w-sm w-full p-6 relative fade-up border-destructive/30 shadow-[0_0_40px_rgba(220,38,38,0.15)]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-10 rounded-full bg-destructive/10 grid place-items-center">
+                <AlertCircle className="h-6 w-6 text-destructive" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl text-destructive">Danger : Risque de perte</h3>
+                <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Smart Contract Polygon</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 mb-6">
+              <p className="text-sm text-foreground">
+                Êtes-vous sûr de vouloir quitter cette tontine avant la fin du cycle ?
+              </p>
+              <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/20">
+                <ul className="text-xs text-destructive/90 space-y-2 list-disc pl-4">
+                  <li><strong>Perte des fonds :</strong> Vos contributions passées ne vous seront pas restituées.</li>
+                  <li><strong>Redistribution :</strong> L'argent sera confisqué par le contrat et redistribué aux autres membres pour compenser votre départ.</li>
+                  <li><strong>Irréversible :</strong> Cette action inscrite sur la blockchain ne peut être annulée.</li>
+                </ul>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowLeaveWarning(false)}
+                disabled={isLeaving}
+                className="btn-pill-secondary flex-1 justify-center"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={async () => {
+                  setIsLeaving(true);
+                  await leaveTontine(t.id);
+                  setIsLeaving(false);
+                  setShowLeaveWarning(false);
+                  toast.success("Vous avez quitté la tontine", { 
+                    description: "Les pénalités du Smart Contract ont été appliquées." 
+                  });
+                  navigate({ to: "/dashboard" });
+                }}
+                disabled={isLeaving}
+                className="btn-pill-primary flex-1 justify-center bg-destructive hover:bg-destructive/90 text-white border-transparent"
+              >
+                {isLeaving ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3 w-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    En cours...
+                  </span>
+                ) : "Continuer et Quitter"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Payment Modal */}
       {showPayment && (
