@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { availableTontines as initAvailable, initialTontines, type Cycle, type Tontine, fillMembers } from "@/lib/mock-data";
 
 interface User {
@@ -51,11 +51,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Persistence logic
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const storedUser = localStorage.getItem("tc-current-user");
-    if (storedUser) setUser(JSON.parse(storedUser));
-    
-    const storedTheme = localStorage.getItem("tc-theme") as "dark" | "light" | null;
-    if (storedTheme) setTheme(storedTheme);
+    try {
+      const storedUser = localStorage.getItem("tc-current-user");
+      if (storedUser) {
+        console.log("Utilisateur trouvé en session:", storedUser);
+        setUser(JSON.parse(storedUser));
+      }
+      
+      const storedTheme = localStorage.getItem("tc-theme") as "dark" | "light" | null;
+      if (storedTheme) setTheme(storedTheme);
+    } catch (e) {
+      console.error("Erreur lecture localStorage:", e);
+    }
   }, []);
 
   useEffect(() => {
@@ -74,27 +81,39 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isLoading,
       login: (email, password) => {
         const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
+        console.log("Comptes enregistrés:", accounts.length);
         const found = accounts.find((a: any) => a.email === email && a.password === password);
         if (found) {
           const u = { name: found.name, email: found.email, wallet: found.wallet };
+          console.log("Connexion réussie pour:", u.name);
           setUser(u);
           localStorage.setItem("tc-current-user", JSON.stringify(u));
           return true;
         }
+        console.warn("Échec connexion: identifiants non trouvés");
         return false;
       },
       signup: (name, email, password) => {
-        const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
-        if (accounts.find((a: any) => a.email === email)) return false;
-        
-        const newAcc = { name, email, password, wallet: randomWallet() };
-        accounts.push(newAcc);
-        localStorage.setItem("tc-accounts", JSON.stringify(accounts));
-        
-        const u = { name: newAcc.name, email: newAcc.email, wallet: newAcc.wallet };
-        setUser(u);
-        localStorage.setItem("tc-current-user", JSON.stringify(u));
-        return true;
+        try {
+          const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
+          if (accounts.find((a: any) => a.email === email)) {
+            console.warn("Email déjà pris:", email);
+            return false;
+          }
+          
+          const newAcc = { name, email, password, wallet: randomWallet() };
+          accounts.push(newAcc);
+          localStorage.setItem("tc-accounts", JSON.stringify(accounts));
+          console.log("Nouveau compte créé:", name);
+          
+          const u = { name: newAcc.name, email: newAcc.email, wallet: newAcc.wallet };
+          setUser(u);
+          localStorage.setItem("tc-current-user", JSON.stringify(u));
+          return true;
+        } catch (e) {
+          console.error("Erreur signup:", e);
+          return false;
+        }
       },
       logout: () => {
         setUser(null);

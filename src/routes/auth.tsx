@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { ArrowLeft, ArrowRight } from "lucide-react";
@@ -22,16 +22,27 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { mode = "login" } = Route.useSearch();
   const isSignup = mode === "signup";
-  const { login, signup } = useApp();
+  const { user, login, signup } = useApp();
   const navigate = useNavigate();
+
+  // Redirection automatique si déjà connecté
+  useEffect(() => {
+    if (user) {
+      console.log("Utilisateur déjà connecté, redirection...");
+      navigate({ to: "/dashboard" });
+    }
+  }, [user, navigate]);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    console.log("Tentative d'authentification...", { mode, email });
+
     if (isSignup) {
       if (password !== confirm) {
         toast.error("Les mots de passe ne correspondent pas");
@@ -40,16 +51,19 @@ function AuthPage() {
       const success = signup(name, email, password);
       if (success) {
         toast.success("Compte créé avec succès !");
-        navigate({ to: "/dashboard" });
+        setTimeout(() => navigate({ to: "/dashboard" }), 100);
       } else {
         toast.error("Cet email est déjà utilisé");
       }
     } else {
       const success = login(email, password);
       if (success) {
+        console.log("Login réussi, redirection...");
         toast.success("Bon retour !");
-        navigate({ to: "/dashboard" });
+        // On utilise un petit délai pour laisser le temps au state de se mettre à jour
+        setTimeout(() => navigate({ to: "/dashboard" }), 100);
       } else {
+        console.error("Login échoué : identifiants incorrects");
         toast.error("Email ou mot de passe incorrect");
       }
     }
