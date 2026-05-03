@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "@/lib/app-context";
+import { toast } from "sonner";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
 type AuthSearch = { mode?: "login" | "signup" };
@@ -21,7 +22,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { mode = "login" } = Route.useSearch();
   const isSignup = mode === "signup";
-  const { login } = useApp();
+  const { login, signup } = useApp();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -31,8 +32,27 @@ function AuthPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    login(isSignup ? name : email.split("@")[0] || "Membre", email);
-    navigate({ to: "/dashboard" });
+    if (isSignup) {
+      if (password !== confirm) {
+        toast.error("Les mots de passe ne correspondent pas");
+        return;
+      }
+      const success = signup(name, email, password);
+      if (success) {
+        toast.success("Compte créé avec succès !");
+        navigate({ to: "/dashboard" });
+      } else {
+        toast.error("Cet email est déjà utilisé");
+      }
+    } else {
+      const success = login(email, password);
+      if (success) {
+        toast.success("Bon retour !");
+        navigate({ to: "/dashboard" });
+      } else {
+        toast.error("Email ou mot de passe incorrect");
+      }
+    }
   };
 
   return (

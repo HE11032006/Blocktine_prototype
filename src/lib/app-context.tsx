@@ -20,11 +20,13 @@ interface AppState {
   available: Tontine[];
   settings: Settings;
   isLoading: boolean;
-  login: (name: string, email: string) => void;
+  login: (email: string, pass: string) => boolean;
+  signup: (name: string, email: string, pass: string) => boolean;
   logout: () => void;
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; amount: number; cycle: Cycle }) => Promise<string>;
   joinTontine: (id: string) => Promise<void>;
+  joinByCode: (code: string) => Promise<"success" | "already" | "not_found">;
   setSettings: (s: Partial<Settings>) => void;
 }
 
@@ -46,11 +48,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // theme apply
+  // Persistence logic
   useEffect(() => {
     if (typeof document === "undefined") return;
-    const stored = localStorage.getItem("tc-theme") as "dark" | "light" | null;
-    if (stored) setTheme(stored);
+    const storedUser = localStorage.getItem("tc-current-user");
+    if (storedUser) setUser(JSON.parse(storedUser));
+    
+    const storedTheme = localStorage.getItem("tc-theme") as "dark" | "light" | null;
+    if (storedTheme) setTheme(storedTheme);
   }, []);
 
   useEffect(() => {
@@ -67,8 +72,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
       available,
       settings,
       isLoading,
-      login: (name, email) => setUser({ name: name || "Invité", email, wallet: randomWallet() }),
-      logout: () => setUser(null),
+      login: (email, password) => {
+        const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
+        const found = accounts.find((a: any) => a.email === email && a.password === password);
+        if (found) {
+          const u = { name: found.name, email: found.email, wallet: found.wallet };
+          setUser(u);
+          localStorage.setItem("tc-current-user", JSON.stringify(u));
+          return true;
+        }
+        return false;
+      },
+      signup: (name, email, password) => {
+        const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
+        if (accounts.find((a: any) => a.email === email)) return false;
+        
+        const newAcc = { name, email, password, wallet: randomWallet() };
+        accounts.push(newAcc);
+        localStorage.setItem("tc-accounts", JSON.stringify(accounts));
+        
+        const u = { name: newAcc.name, email: newAcc.email, wallet: newAcc.wallet };
+        setUser(u);
+        localStorage.setItem("tc-current-user", JSON.stringify(u));
+        return true;
+      },
+      logout: () => {
+        setUser(null);
+        localStorage.removeItem("tc-current-user");
+      },
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
       createTontine: async ({ name, capacity, amount, cycle }) => {
         setIsLoading(true);
@@ -114,6 +145,34 @@ export function AppProvider({ children }: { children: ReactNode }) {
         setTontines((arr) => [joined, ...arr]);
         setAvailable((arr) => arr.filter((a) => a.id !== id));
         setIsLoading(false);
+      },
+      joinByCode: async (code) => {
+        setIsLoading(true);
+        await new Promise((r) => setTimeout(r, 1200)); // Search simulation
+        // First look in available, then check if it's one of the current (to mock finding any)
+        const found = [...available, ...tontines].find((a) => a.code === code);
+        if (found) {
+          if (tontines.some(t => t.id === found.id)) {
+            setIsLoading(false);
+            return "already";
+          }
+          const joined: Tontine = {
+            ...found,
+            role: "member",
+            nextDue: found.cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
+            progress: 5,
+            members: [
+              { id: "me", name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "pending" },
+              ...fillMembers(found.capacity, found.members.length),
+            ],
+          };
+          setTontines((arr) => [joined, ...arr]);
+          setAvailable((arr) => arr.filter((a) => a.id !== found.id));
+          setIsLoading(false);
+          return "success";
+        }
+        setIsLoading(false);
+        return "not_found";
       },
       setSettings: (s) => setSettingsState((prev) => ({ ...prev, ...s })),
     }),

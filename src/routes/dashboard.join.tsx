@@ -11,7 +11,7 @@ export const Route = createFileRoute("/dashboard/join")({
 });
 
 function JoinPage() {
-  const { available, joinTontine, isLoading } = useApp();
+  const { available, joinTontine, joinByCode, isLoading } = useApp();
   const [selected, setSelected] = useState<Tontine | null>(null);
   const navigate = useNavigate();
 
@@ -31,12 +31,44 @@ function JoinPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Retour
       </Link>
 
-      <div className="mb-10">
-        <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">Cercles ouverts</span>
-        <h1 className="font-display text-5xl mt-1">Rejoindre une tontine</h1>
-        <p className="text-muted-foreground mt-3 max-w-xl">
-          Découvrez les cercles disponibles et rejoignez celui qui correspond à votre rythme.
-        </p>
+      <div className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div>
+          <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">Cercles ouverts</span>
+          <h1 className="font-display text-5xl mt-1">Rejoindre une tontine</h1>
+          <p className="text-muted-foreground mt-3 max-w-xl">
+            Découvrez les cercles disponibles ou saisissez un code d'invitation.
+          </p>
+        </div>
+
+        <div className="tc-card p-4 flex gap-3 items-end max-w-md w-full">
+          <label className="flex-1">
+            <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground block mb-1">Code d'invitation</span>
+            <input 
+              id="join-code"
+              placeholder="TC-ABCD-1234"
+              className="w-full bg-secondary border border-border rounded-lg px-3 py-2 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <button 
+            onClick={async () => {
+              const code = (document.getElementById("join-code") as HTMLInputElement).value;
+              if (!code) return toast.error("Veuillez saisir un code");
+              const res = await joinByCode(code);
+              if (res === "success") {
+                toast.success("Cercle rejoint !");
+                navigate({ to: "/dashboard" });
+              } else if (res === "already") {
+                toast.error("Vous faites déjà partie de ce cercle");
+              } else {
+                toast.error("Code invalide ou tontine introuvable");
+              }
+            }}
+            disabled={isLoading}
+            className="btn-pill-primary px-6 h-10"
+          >
+            {isLoading ? <span className="h-4 w-4 border-2 border-noir border-t-transparent rounded-full animate-spin" /> : "Rejoindre"}
+          </button>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">

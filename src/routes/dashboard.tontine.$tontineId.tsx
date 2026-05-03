@@ -15,6 +15,8 @@ function TontineDetail() {
   const { tontines } = useApp();
   const t = tontines.find((x) => x.id === tontineId);
   const [view, setView] = useState<"creator" | "member">(t?.role === "creator" ? "creator" : "member");
+  const [showPayment, setShowPayment] = useState(false);
+  const [isPaying, setIsPaying] = useState(false);
 
   if (!t) {
     return (
@@ -80,7 +82,17 @@ function TontineDetail() {
         ))}
       </div>
 
-      {view === "creator" ? <CreatorView t={t} /> : <MemberView t={t} />}
+      {view === "creator" ? (
+        <CreatorView t={t} />
+      ) : (
+        <MemberView
+          t={t}
+          showPayment={showPayment}
+          setShowPayment={setShowPayment}
+          isPaying={isPaying}
+          setIsPaying={setIsPaying}
+        />
+      )}
     </div>
   );
 }
@@ -182,7 +194,19 @@ function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
   );
 }
 
-function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
+function MemberView({
+  t,
+  showPayment,
+  setShowPayment,
+  isPaying,
+  setIsPaying,
+}: {
+  t: import("@/lib/mock-data").Tontine;
+  showPayment: boolean;
+  setShowPayment: (v: boolean) => void;
+  isPaying: boolean;
+  setIsPaying: (v: boolean) => void;
+}) {
   const me = t.members.find((m) => m.name === "Vous") ?? t.members[0];
   const schedule = Array.from({ length: 5 }).map((_, i) => ({
     cycle: i + 1,
@@ -202,16 +226,82 @@ function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
           <p className="text-xs text-muted-foreground mt-1">Montant : {t.amount} MATIC</p>
         </div>
         <button 
-          onClick={async () => {
-            toast.info("Initialisation de la transaction...", { description: "Ouverture de votre wallet" });
-            await new Promise(r => setTimeout(r, 1500));
-            toast.success("Contribution versée !", { description: "La transaction a été validée sur Polygon." });
-          }}
+          onClick={() => setShowPayment(true)}
           className="btn-pill-primary w-full justify-center mt-6"
         >
           Effectuer le paiement
         </button>
       </div>
+
+      {/* Payment Modal */}
+      {showPayment && (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-background/80 backdrop-blur-sm px-4">
+          <div className="tc-card max-w-sm w-full p-6 relative fade-up border-primary/30 shadow-[0_0_40px_rgba(var(--color-or-rgb),0.1)]">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="h-10 w-10 rounded-full bg-primary/10 grid place-items-center">
+                <ShieldCheck className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-display text-xl">Signature requise</h3>
+                <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Protocole blockTine</p>
+              </div>
+            </div>
+
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Action</span>
+                <span className="font-medium">Dépôt de contribution</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Montant</span>
+                <span className="font-display text-lg text-primary">{t.amount} MATIC</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Gaz (estimé)</span>
+                <span className="text-primary">0.0024 MATIC</span>
+              </div>
+              <div className="pt-3 border-t border-border flex justify-between text-xs font-mono">
+                <span className="text-muted-foreground">Vers</span>
+                <span className="truncate ml-4">0x71C...4921</span>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button 
+                onClick={() => setShowPayment(false)}
+                disabled={isPaying}
+                className="btn-pill-secondary flex-1 justify-center"
+              >
+                Rejeter
+              </button>
+              <button 
+                onClick={async () => {
+                  setIsPaying(true);
+                  await new Promise(r => setTimeout(r, 2000));
+                  setIsPaying(false);
+                  setShowPayment(false);
+                  toast.success("Contribution versée !", { 
+                    description: "La transaction a été validée sur le réseau Polygon." 
+                  });
+                }}
+                disabled={isPaying}
+                className="btn-pill-primary flex-1 justify-center"
+              >
+                {isPaying ? (
+                  <span className="flex items-center gap-2">
+                    <span className="h-3 w-3 border-2 border-noir border-t-transparent rounded-full animate-spin" />
+                    Envoi...
+                  </span>
+                ) : "Confirmer"}
+              </button>
+            </div>
+            
+            <p className="text-[0.6rem] text-center text-muted-foreground mt-4">
+              En confirmant, vous autorisez le smart contract à prélever {t.amount} MATIC de votre portefeuille.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Schedule */}
       <div className="tc-card p-6 lg:col-span-2">
