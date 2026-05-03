@@ -22,7 +22,7 @@ export function AppHeader() {
             ◆
           </div>
           <span className="font-display text-2xl tracking-wide leading-none">
-            Tontine<span className="text-primary">Chain</span>
+            block<span className="text-primary">Tine</span>
           </span>
         </Link>
         <div className="flex items-center gap-3">
