@@ -1,6 +1,7 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
 import { useState } from "react";
 import { useApp } from "@/lib/app-context";
+import { toast } from "sonner";
 import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Crown, Users } from "lucide-react";
 import type { MemberStatus } from "@/lib/mock-data";
 
@@ -200,7 +201,16 @@ function MemberView({ t }: { t: import("@/lib/mock-data").Tontine }) {
           <p className="font-display text-3xl text-primary mt-1">{t.nextDue ?? "—"}</p>
           <p className="text-xs text-muted-foreground mt-1">Montant : {t.amount} MATIC</p>
         </div>
-        <button className="btn-pill-primary w-full justify-center mt-6">Effectuer le paiement</button>
+        <button 
+          onClick={async () => {
+            toast.info("Initialisation de la transaction...", { description: "Ouverture de votre wallet" });
+            await new Promise(r => setTimeout(r, 1500));
+            toast.success("Contribution versée !", { description: "La transaction a été validée sur Polygon." });
+          }}
+          className="btn-pill-primary w-full justify-center mt-6"
+        >
+          Effectuer le paiement
+        </button>
       </div>
 
       {/* Schedule */}

@@ -11,13 +11,13 @@ export const Route = createFileRoute("/dashboard/join")({
 });
 
 function JoinPage() {
-  const { available, joinTontine } = useApp();
+  const { available, joinTontine, isLoading } = useApp();
   const [selected, setSelected] = useState<Tontine | null>(null);
   const navigate = useNavigate();
 
-  const confirm = () => {
+  const confirm = async () => {
     if (!selected) return;
-    joinTontine(selected.id);
+    await joinTontine(selected.id);
     toast.success("Vous avez rejoint la tontine ✦", {
       description: `Bienvenue dans ${selected.name}.`,
     });
@@ -106,11 +106,15 @@ function JoinPage() {
               </p>
             </div>
             <div className="mt-6 flex gap-3">
-              <button onClick={() => setSelected(null)} className="btn-pill-secondary flex-1 justify-center">
+              <button disabled={isLoading} onClick={() => setSelected(null)} className="btn-pill-secondary flex-1 justify-center disabled:opacity-50">
                 Annuler
               </button>
-              <button onClick={confirm} className="btn-pill-primary flex-1 justify-center">
-                Confirmer
+              <button disabled={isLoading} onClick={confirm} className="btn-pill-primary flex-1 justify-center disabled:opacity-50">
+                {isLoading ? (
+                  <span className="h-4 w-4 border-2 border-noir border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  "Confirmer"
+                )}
               </button>
             </div>
           </div>

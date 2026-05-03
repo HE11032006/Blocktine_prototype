@@ -19,11 +19,12 @@ interface AppState {
   tontines: Tontine[];
   available: Tontine[];
   settings: Settings;
+  isLoading: boolean;
   login: (name: string, email: string) => void;
   logout: () => void;
   toggleTheme: () => void;
-  createTontine: (data: { name: string; capacity: number; amount: number; cycle: Cycle }) => string;
-  joinTontine: (id: string) => void;
+  createTontine: (data: { name: string; capacity: number; amount: number; cycle: Cycle }) => Promise<string>;
+  joinTontine: (id: string) => Promise<void>;
   setSettings: (s: Partial<Settings>) => void;
 }
 
@@ -42,6 +43,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     notifNewMember: true,
     notifCycleEnd: false,
   });
+
+  const [isLoading, setIsLoading] = useState(false);
 
   // theme apply
   useEffect(() => {
@@ -63,10 +66,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       tontines,
       available,
       settings,
+      isLoading,
       login: (name, email) => setUser({ name: name || "Invité", email, wallet: randomWallet() }),
       logout: () => setUser(null),
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      createTontine: ({ name, capacity, amount, cycle }) => {
+      createTontine: async ({ name, capacity, amount, cycle }) => {
+        setIsLoading(true);
+        await new Promise((r) => setTimeout(r, 800)); // Simulate network
         const id = `t-${Date.now().toString(36)}`;
         const code = `TC-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
         const t: Tontine = {
@@ -84,11 +90,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           transactions: [],
         };
         setTontines((arr) => [t, ...arr]);
+        setIsLoading(false);
         return id;
       },
-      joinTontine: (id) => {
+      joinTontine: async (id) => {
+        setIsLoading(true);
+        await new Promise((r) => setTimeout(r, 800)); // Simulate network
         const found = available.find((a) => a.id === id);
-        if (!found) return;
+        if (!found) {
+          setIsLoading(false);
+          return;
+        }
         const joined: Tontine = {
           ...found,
           role: "member",
@@ -101,10 +113,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
         };
         setTontines((arr) => [joined, ...arr]);
         setAvailable((arr) => arr.filter((a) => a.id !== id));
+        setIsLoading(false);
       },
       setSettings: (s) => setSettingsState((prev) => ({ ...prev, ...s })),
     }),
-    [user, theme, tontines, available, settings]
+    [user, theme, tontines, available, settings, isLoading]
   );
 
   return <AppCtx.Provider value={value}>{children}</AppCtx.Provider>;

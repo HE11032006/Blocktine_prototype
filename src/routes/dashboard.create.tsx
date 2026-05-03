@@ -10,7 +10,7 @@ export const Route = createFileRoute("/dashboard/create")({
 });
 
 function CreatePage() {
-  const { createTontine, tontines } = useApp();
+  const { createTontine, tontines, isLoading } = useApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState(8);
@@ -22,9 +22,9 @@ function CreatePage() {
 
   const created = createdId ? tontines.find((t) => t.id === createdId) : null;
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const id = createTontine({ name: name || "Nouvelle tontine", capacity, amount, cycle });
+    const id = await createTontine({ name: name || "Nouvelle tontine", capacity, amount, cycle });
     toast.success("Tontine créée ✦", {
       description: `Dépôt initial de ${initialDeposit} MATIC enregistré.`,
     });
@@ -128,8 +128,17 @@ function CreatePage() {
           </span>
         </label>
 
-        <button type="submit" className="btn-pill-primary w-full justify-center">
-          <Sparkles className="h-4 w-4" /> Créer & verser {initialDeposit} MATIC
+        <button type="submit" disabled={isLoading} className="btn-pill-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed">
+          {isLoading ? (
+            <span className="flex items-center gap-2">
+              <span className="h-4 w-4 border-2 border-noir border-t-transparent rounded-full animate-spin" />
+              Signature en cours...
+            </span>
+          ) : (
+            <>
+              <Sparkles className="h-4 w-4" /> Créer & verser {initialDeposit} MATIC
+            </>
+          )}
         </button>
       </form>
 
