@@ -3,6 +3,9 @@
 ## Description de la solution
 Blocktine est une application web de gestion de tontines collectives. Elle a pour but de moderniser et de securiser la tradition de l'epargne communautaire en Afrique, plus precisement au Benin. Le systeme simule l'utilisation de la technologie blockchain (Polygon) au travers de smart contracts pour garantir la transparence des transactions, la securite des fonds, et automatiser les cycles de cotisation et de deblocage. Le design respecte les codes esthetiques premium de "l'Atelier Benin" pour une experience utilisateur optimale et engageante.
 
+## Note importante pour les evaluateurs
+Pour faciliter l'exploration du prototype sans avoir a creer de compte manuellement, un **"Mode Demo"** est disponible directement sur la page de connexion. En cliquant sur le lien "Ou essayer le Mode Demo" en bas du formulaire, vous serez automatiquement connecte avec un profil de test. Cela vous permet d'acceder instantanement au tableau de bord et de tester toutes les fonctionnalites de l'application (creation de tontine, gestion des membres, paiements, etc.).
+
 ## Fonctionnalites principales developpees
 - Creation de compte et authentification.
 - Tableau de bord personnalise selon le role (Organisateur ou Participant).
