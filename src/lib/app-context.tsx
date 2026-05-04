@@ -22,6 +22,7 @@ interface AppState {
   isLoading: boolean;
   login: (email: string, pass: string) => boolean;
   signup: (name: string, email: string, pass: string) => boolean;
+  loginGuest: () => void;
   logout: () => void;
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
@@ -113,6 +114,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.error("Erreur signup:", e);
           return false;
         }
+      },
+      loginGuest: () => {
+        const guest = { name: "Visiteur Démo", email: "demo@blocktine.com", wallet: "0xDEMO…777" };
+        setUser(guest);
+        localStorage.setItem("tc-current-user", JSON.stringify(guest));
       },
       logout: () => {
         setUser(null);

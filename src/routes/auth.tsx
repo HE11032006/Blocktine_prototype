@@ -22,7 +22,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { mode = "login" } = Route.useSearch();
   const isSignup = mode === "signup";
-  const { user, login, signup } = useApp();
+  const { user, login, signup, loginGuest } = useApp();
   const navigate = useNavigate();
 
   // Redirection automatique si déjà connecté
@@ -106,6 +106,19 @@ function AuthPage() {
           <button type="submit" className="btn-pill-primary w-full justify-center mt-2">
             {isSignup ? "Créer mon compte" : "Se connecter"} <ArrowRight className="h-4 w-4" />
           </button>
+
+          {!isSignup && (
+            <button
+              type="button"
+              onClick={() => {
+                loginGuest();
+                toast.success("Mode Démo activé !");
+              }}
+              className="w-full text-[0.7rem] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors py-2"
+            >
+              Ou essayer le <span className="text-primary font-bold">Mode Démo</span> (accès rapide)
+            </button>
+          )}
 
           <p className="text-center text-xs text-muted-foreground pt-2">
             {isSignup ? "Déjà membre ?" : "Pas encore de compte ?"}{" "}
