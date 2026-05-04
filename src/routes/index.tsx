@@ -1,5 +1,7 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowRight } from "lucide-react";
+import { useApp } from "@/lib/app-context";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,6 +18,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const { loginGuest } = useApp();
+  const navigate = useNavigate();
+
   return (
     <div className="relative min-h-screen overflow-hidden bg-background grain">
       {/* Filigree pattern */}
@@ -56,9 +61,21 @@ function Landing() {
             block<span className="text-primary">Tine</span>
           </span>
         </div>
-        <Link to="/auth" search={{ mode: "login" }} className="text-xs font-medium text-muted-foreground hover:text-primary">
-          Se connecter
-        </Link>
+        <div className="flex items-center gap-6">
+          <button
+            onClick={() => {
+              loginGuest();
+              toast.success("Mode Démo activé !");
+              navigate({ to: "/dashboard" });
+            }}
+            className="text-[0.6rem] sm:text-[0.7rem] uppercase tracking-widest text-primary font-bold hover:opacity-80 transition-opacity"
+          >
+            Mode Démo (accès rapide sans connexion)
+          </button>
+          <Link to="/auth" search={{ mode: "login" }} className="text-xs font-medium text-muted-foreground hover:text-primary">
+            Se connecter
+          </Link>
+        </div>
       </nav>
 
       {/* Hero */}
