@@ -1,10 +1,17 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { availableTontines as initAvailable, initialTontines, type Cycle, type Tontine, fillMembers } from "@/lib/mock-data";
+import { supabase } from "@/lib/supabase";
+import axios from "axios";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 interface User {
+  id: string;
   name: string;
   email: string;
   wallet: string;
+  phone?: string;
+  balance?: string;
 }
 
 interface Settings {
@@ -20,13 +27,14 @@ interface AppState {
   available: Tontine[];
   settings: Settings;
   isLoading: boolean;
-  login: (email: string, pass: string) => boolean;
-  signup: (name: string, email: string, pass: string) => boolean;
+  login: (email: string, pass: string) => Promise<boolean>;
+  signup: (name: string, email: string, pass: string) => Promise<boolean>;
   loginGuest: () => void;
   logout: () => void;
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
-  joinTontine: (id: string, rank: number) => Promise<void>;
+  deposit: (tontineId: string, amountFCFA: number, phoneNumber: string) => Promise<boolean>;
+  joinTontine: (id: string, inviteCode: string, rank: number) => Promise<void>;
   leaveTontine: (id: string) => Promise<void>;
   getTontineByCode: (code: string) => Promise<Tontine | "already" | "not_found">;
   simulatePenalty: (tontineId: string, memberId: string) => void;
@@ -35,13 +43,21 @@ interface AppState {
 
 const AppCtx = createContext<AppState | null>(null);
 
-const randomWallet = () =>
-  `0x${Math.random().toString(16).slice(2, 6)}…${Math.random().toString(16).slice(2, 6)}`;
+// Configure axios with interceptor for auth token
+const api = axios.create({ baseURL: API_URL });
+
+api.interceptors.request.use(async (config) => {
+  const { data } = await supabase.auth.getSession();
+  if (data.session?.access_token) {
+    config.headers.Authorization = `Bearer ${data.session.access_token}`;
+  }
+  return config;
+});
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [tontines, setTontines] = useState<Tontine[]>(initialTontines);
+  const [tontines, setTontines] = useState<Tontine[]>([]);
   const [available, setAvailable] = useState<Tontine[]>(initAvailable);
   const [settings, setSettingsState] = useState<Settings>({
     notifPayment: true,
@@ -51,22 +67,92 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  // Persistence logic
+  // Handle Supabase Auth Changes
   useEffect(() => {
-    if (typeof document === "undefined") return;
-    try {
-      const storedUser = localStorage.getItem("tc-current-user");
-      if (storedUser) {
-        console.log("Utilisateur trouvé en session:", storedUser);
-        setUser(JSON.parse(storedUser));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || "User",
+          email: session.user.email || "",
+          wallet: session.user.user_metadata.wallet_address || "0x...",
+        });
       }
-      
-      const storedTheme = localStorage.getItem("tc-theme") as "dark" | "light" | null;
-      if (storedTheme) setTheme(storedTheme);
-    } catch (e) {
-      console.error("Erreur lecture localStorage:", e);
-    }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          name: session.user.user_metadata.full_name || session.user.email?.split('@')[0] || "User",
+          email: session.user.email || "",
+          wallet: session.user.user_metadata.wallet_address || "0x...",
+        });
+      } else {
+        setUser(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  // Fetch Tontines from Backend
+  const fetchTontines = async () => {
+    if (!user) return;
+    try {
+      const res = await api.get("/groups");
+      // Map backend groups to frontend Tontine structure
+      const mapped: Tontine[] = await Promise.all(res.data.groups.map(async (g: any) => {
+        const mRes = await api.get(`/groups/${g.id}/members`);
+        const pRes = await api.get(`/payments/group/${g.id}`);
+        
+        return {
+          id: g.id,
+          code: g.invite_code,
+          name: g.name,
+          description: `Tontine sécurisée sur Polygon.`,
+          amount: g.amount_fcfa,
+          capacity: g.max_members,
+          cycle: g.frequency_days === 7 ? "weekly" : "monthly",
+          role: g.creator_id === user.id ? "creator" : "member",
+          visibility: g.is_public ? "public" : "private",
+          members: mRes.data,
+          transactions: pRes.data.map((p: any) => ({
+            id: p.id,
+            hash: p.kotani_ref,
+            member: p.user_id === user.id ? "Vous" : "Membre",
+            type: "Dépôt",
+            amount: p.amount_fcfa,
+            status: p.status,
+            date: new Date(p.created_at).toLocaleDateString("fr-FR"),
+          })),
+          hasPendingPayment: pRes.data.some((p: any) => p.user_id === user.id && p.status === "pending"),
+          progress: 0,
+        };
+      }));
+      setTontines(mapped);
+    } catch (e) {
+      console.error("Erreur chargement tontines:", e);
+      setTontines([]); // No fallback to mocks
+    }
+  };
+
+  const fetchBalance = async () => {
+    if (!user) return;
+    try {
+      const res = await api.get("/payments/balance");
+      setUser(prev => prev ? { ...prev, balance: res.data.balance_usdc } : null);
+    } catch (e) {
+      console.error("Erreur solde:", e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchTontines();
+      fetchBalance();
+    }
+  }, [user]);
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -82,152 +168,137 @@ export function AppProvider({ children }: { children: ReactNode }) {
       available,
       settings,
       isLoading,
-      login: (email, password) => {
-        const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
-        console.log("Comptes enregistrés:", accounts.length);
-        const found = accounts.find((a: any) => a.email === email && a.password === password);
-        if (found) {
-          const u = { name: found.name, email: found.email, wallet: found.wallet };
-          console.log("Connexion réussie pour:", u.name);
-          setUser(u);
-          localStorage.setItem("tc-current-user", JSON.stringify(u));
-          return true;
-        }
-        console.warn("Échec connexion: identifiants non trouvés");
-        return false;
+      login: async (email, password) => {
+        setIsLoading(true);
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        setIsLoading(false);
+        return !error;
       },
-      signup: (name, email, password) => {
+      signup: async (name, email, password) => {
+        setIsLoading(true);
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: { data: { full_name: name, wallet_address: `0x${Math.random().toString(16).slice(2, 40)}` } }
+        });
+        setIsLoading(false);
+        return !error;
+      },
+      deposit: async (tontineId, amountFCFA, phoneNumber) => {
+        setIsLoading(true);
         try {
-          const accounts = JSON.parse(localStorage.getItem("tc-accounts") || "[]");
-          if (accounts.find((a: any) => a.email === email)) {
-            console.warn("Email déjà pris:", email);
-            return false;
-          }
-          
-          const newAcc = { name, email, password, wallet: randomWallet() };
-          accounts.push(newAcc);
-          localStorage.setItem("tc-accounts", JSON.stringify(accounts));
-          console.log("Nouveau compte créé:", name);
-          
+          await api.post("/payments/initiate", {
+            group_id: tontineId,
+            round_id: null, // Initial deposit doesn't have a round yet
+            amount_fcfa: amountFCFA,
+            phone_number: phoneNumber
+          });
+          setIsLoading(false);
           return true;
-        } catch (e) {
-          console.error("Erreur signup:", e);
+        } catch (e: any) {
+          console.error("Erreur depot:", e);
+          if (e.response?.status === 409) {
+            toast.error("Paiement déjà en cours", {
+              description: "Une demande de paiement a déjà été initiée pour cette période."
+            });
+          }
+          setIsLoading(false);
           return false;
         }
       },
       loginGuest: () => {
-        const guest = { name: "Visiteur Démo", email: "demo@blocktine.com", wallet: "0xDEMO…777" };
+        const guest = { id: "demo-id", name: "Visiteur Démo", email: "demo@blocktine.com", wallet: "0xDEMO…777" };
         setUser(guest);
-        localStorage.setItem("tc-current-user", JSON.stringify(guest));
       },
       logout: () => {
+        supabase.auth.signOut();
         setUser(null);
-        setTontines(initialTontines);
-        localStorage.removeItem("tc-current-user");
+        setTontines([]);
       },
       toggleTheme: () => setTheme((t) => (t === "dark" ? "light" : "dark")),
-      createTontine: async ({ name, capacity, isUnlimitedCapacity, amount, cycle, visibility, startDate }) => {
+      createTontine: async ({ name, capacity, amount, cycle, visibility }) => {
         setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 800)); // Simulate network
-        const id = `t-${Date.now().toString(36)}`;
-        const code = `TC-${Math.random().toString(36).slice(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-        const t: Tontine = {
-          id,
-          code,
-          name,
-          description: "Nouvelle tontine créée par vous.",
-          members: [{ id: `m-${Math.random().toString(36).slice(2, 5)}`, name: "Vous", wallet: user?.wallet ?? randomWallet(), status: "paid" }],
-          capacity,
-          isUnlimitedCapacity,
-          amount,
-          cycle,
-          role: "creator",
-          visibility,
-          startDate,
-          rules: "Règles Smart Contract Polygon :\n- Retard au 1er cycle : Avertissement.\n- Retard au 2e cycle : Pénalité de 5% du dépôt.\n- 3e retard ou non-paiement prolongé : Exclusion et confiscation des fonds pour dédommager le cercle.",
-          nextDue: cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
-          progress: 0,
-          transactions: [],
-        };
-        
-        // Sauvegarde locale pour l'utilisateur actuel
-        setTontines((arr) => [t, ...arr]);
-        
-        // Sauvegarde globale pour simulation multi-comptes
-        const global = JSON.parse(localStorage.getItem("tc-global-tontines") || "[]");
-        global.push(t);
-        localStorage.setItem("tc-global-tontines", JSON.stringify(global));
-
-        if (visibility === "public") {
-          setAvailable((arr) => [{ ...t, role: "available", members: [] }, ...arr]);
-        }
-        setIsLoading(false);
-        return id;
-      },
-      joinTontine: async (id, rank) => {
-        setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 800)); // Simulate network
-        
-        const global = JSON.parse(localStorage.getItem("tc-global-tontines") || "[]");
-        const found = [...available, ...global, ...tontines].find((a) => a.id === id);
-        
-        if (!found) {
+        try {
+          const res = await api.post("/groups", {
+            name,
+            amount_fcfa: Math.max(amount, 500),
+            frequency_days: cycle === "weekly" ? 7 : 30,
+            max_members: capacity,
+            is_public: visibility === "public"
+          });
+          
+          await fetchTontines(); // Reload
           setIsLoading(false);
-          return;
+          return res.data.id;
+        } catch (e) {
+          console.error("Erreur création tontine:", e);
+          setIsLoading(false);
+          return "error";
         }
-        const joined: Tontine = {
-          ...found,
-          role: "member",
-          nextDue: found.cycle === "weekly" ? "Dans 7 jours" : "Dans 30 jours",
-          progress: 10,
-          members: [
-            { id: `me-${Math.random().toString(36).slice(2, 5)}`, name: user?.name || "Vous", wallet: user?.wallet ?? randomWallet(), status: "pending", rank },
-            ...fillMembers(found.capacity, found.members.length),
-          ],
-        };
-        setTontines((arr) => [joined, ...arr]);
-        setAvailable((arr) => arr.filter((a) => a.id !== id));
+      },
+      joinTontine: async (id, inviteCode, _rank) => {
+        setIsLoading(true);
+        try {
+          await api.post(`/groups/${id}/join`, { invite_code: inviteCode });
+          await fetchTontines();
+        } catch (e) {
+          console.error("Erreur join:", e);
+          toast.error("Erreur lors de l'adhésion au cercle.");
+        }
         setIsLoading(false);
       },
       leaveTontine: async (id) => {
         setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 800)); // Simulate tx
-        setTontines((prev) => prev.filter((t) => t.id !== id));
+        try {
+          await api.delete(`/groups/${id}/leave`);
+          await fetchTontines();
+        } catch (e) {
+          console.error("Erreur leave:", e);
+        }
         setIsLoading(false);
       },
       getTontineByCode: async (code) => {
         setIsLoading(true);
-        await new Promise((r) => setTimeout(r, 600)); // Search simulation
-        
-        // On cherche d'abord dans les tontines que l'utilisateur possède déjà
-        if (tontines.some(t => t.code === code && t.role !== "available")) {
+        try {
+          const res = await api.get(`/groups/by-code/${code}`);
+          const g = res.data;
+          
+          // Map to frontend structure
+          const mapped: Tontine = {
+            id: g.id,
+            code: g.invite_code,
+            name: g.name,
+            description: `Tontine sécurisée.`,
+            amount: g.amount_fcfa,
+            capacity: g.max_members,
+            cycle: g.frequency_days === 7 ? "weekly" : "monthly",
+            role: "member", // Default as we are searching to join
+            visibility: g.is_public ? "public" : "private",
+            members: [],
+            transactions: [],
+            progress: 0,
+          };
+          
           setIsLoading(false);
-          return "already";
-        }
-
-        // Sinon on cherche dans le pool global
-        const global = JSON.parse(localStorage.getItem("tc-global-tontines") || "[]");
-        const found = [...available, ...global].find((a) => a.code === code);
-        
-        if (found) {
+          return mapped;
+        } catch (e) {
+          console.error("Code non trouvé:", e);
           setIsLoading(false);
-          return found;
+          return "not_found";
         }
-        setIsLoading(false);
-        return "not_found";
       },
       simulatePenalty: (tontineId, memberId) => {
+        // Mock only for visual demo
         setTontines(prev => prev.map(t => {
           if (t.id !== tontineId) return t;
           return {
             ...t,
             members: t.members.map(m => {
               if (m.id !== memberId) return m;
-              let nextStatus: "paid" | "pending" | "late" | "warning" | "banned" = "late";
+              let nextStatus: any = "late";
               if (m.status === "paid" || m.status === "pending") nextStatus = "late";
               else if (m.status === "late") nextStatus = "warning";
               else if (m.status === "warning") nextStatus = "banned";
-              
               return { ...m, status: nextStatus };
             })
           };
