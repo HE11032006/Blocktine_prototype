@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { ArrowLeft, ShieldCheck, Calendar, CheckCircle2, Clock, AlertCircle, Crown, Users, XCircle } from "lucide-react";
-import type { MemberStatus } from "@/lib/mock-data";
+import type { Tontine, Member, MemberStatus, Transaction } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
   head: () => ({ meta: [{ title: "Détail tontine — blockTine" }] }),
@@ -12,11 +12,13 @@ export const Route = createFileRoute("/dashboard/tontine/$tontineId")({
 
 function TontineDetail() {
   const { tontineId } = Route.useParams();
-  const { tontines } = useApp();
+  const { tontines, deposit } = useApp();
   const t = tontines.find((x) => x.id === tontineId);
   const [view, setView] = useState<"creator" | "member">(t?.role === "creator" ? "creator" : "member");
   const [showPayment, setShowPayment] = useState(false);
   const [isPaying, setIsPaying] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [operator, setOperator] = useState<"tmoney" | "flooz">("tmoney");
 
   if (!t) {
     return (
@@ -39,7 +41,7 @@ function TontineDetail() {
       <div className="flex flex-wrap items-end justify-between gap-4 mb-6">
         <div>
           <span className="text-[0.7rem] uppercase tracking-widest text-primary font-semibold">
-            {t.cycle === "weekly" ? "Hebdomadaire" : "Mensuel"} · {t.amount} MATIC
+            {t.cycle === "weekly" ? "Hebdomadaire" : "Mensuel"} · {t.amount.toLocaleString()} FCFA
           </span>
           <h1 className="font-display text-5xl mt-1">{t.name}</h1>
           <p className="text-muted-foreground mt-2 max-w-xl">{t.description}</p>
@@ -91,6 +93,11 @@ function TontineDetail() {
           setShowPayment={setShowPayment}
           isPaying={isPaying}
           setIsPaying={setIsPaying}
+          phoneNumber={phoneNumber}
+          setPhoneNumber={setPhoneNumber}
+          operator={operator}
+          setOperator={setOperator}
+          deposit={deposit}
         />
       )}
     </div>
@@ -113,7 +120,7 @@ function StatusBadge({ status }: { status: MemberStatus }) {
   );
 }
 
-function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
+function CreatorView({ t }: { t: Tontine }) {
   const paidCount = t.members.filter((m) => m.status === "paid").length;
   const pct = t.members.length ? Math.round((paidCount / t.members.length) * 100) : 0;
 
@@ -198,7 +205,7 @@ function CreatorView({ t }: { t: import("@/lib/mock-data").Tontine }) {
                     <td className="py-3 font-mono text-xs text-primary">{tx.hash}</td>
                     <td>{tx.member}</td>
                     <td className="text-muted-foreground capitalize">{tx.type}</td>
-                    <td className="text-right font-display text-lg text-primary">{tx.amount} MATIC</td>
+                    <td className="text-right font-display text-lg text-primary">{tx.amount.toLocaleString()} FCFA</td>
                     <td className="text-right text-xs text-muted-foreground">{tx.date}</td>
                   </tr>
                 ))}
@@ -217,12 +224,22 @@ function MemberView({
   setShowPayment,
   isPaying,
   setIsPaying,
+  phoneNumber,
+  setPhoneNumber,
+  operator,
+  setOperator,
+  deposit,
 }: {
-  t: import("@/lib/mock-data").Tontine;
+  t: Tontine;
   showPayment: boolean;
   setShowPayment: (v: boolean) => void;
   isPaying: boolean;
   setIsPaying: (v: boolean) => void;
+  phoneNumber: string;
+  setPhoneNumber: (v: string) => void;
+  operator: "tmoney" | "flooz";
+  setOperator: (v: "tmoney" | "flooz") => void;
+  deposit: (tontineId: string, amount: number, phone: string) => Promise<boolean>;
 }) {
   const { leaveTontine } = useApp();
   const navigate = useNavigate();
@@ -230,11 +247,18 @@ function MemberView({
   const [isLeaving, setIsLeaving] = useState(false);
 
   const me = t.members.find((m) => m.name === "Vous") ?? t.members[0];
-  const schedule = Array.from({ length: 5 }).map((_, i) => ({
-    cycle: i + 1,
-    date: `${10 + i * (t.cycle === "weekly" ? 7 : 30)} mai`,
-    paid: i < 2,
-  }));
+  const startDate = new Date(); // Fallback to now
+  const schedule = Array.from({ length: Math.min(t.capacity, 12) }).map((_, i) => {
+    const date = new Date(startDate);
+    if (t.cycle === "weekly") date.setDate(date.getDate() + (i * 7));
+    else date.setMonth(date.getMonth() + i);
+    
+    return {
+      cycle: i + 1,
+      date: date.toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+      paid: false, // Default to false, will be linked to real tx later
+    };
+  });
 
   return (
     <div className="grid lg:grid-cols-3 gap-5">
@@ -245,13 +269,19 @@ function MemberView({
         <div className="mt-6">
           <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">Prochaine échéance</span>
           <p className="font-display text-3xl text-primary mt-1">{t.nextDue ?? "—"}</p>
-          <p className="text-xs text-muted-foreground mt-1">Montant : {t.amount} MATIC</p>
+          <p className="text-xs text-muted-foreground mt-1">Montant : {t.amount.toLocaleString()} FCFA</p>
         </div>
         <button 
           onClick={() => setShowPayment(true)}
-          className="btn-pill-primary w-full justify-center mt-6"
+          disabled={t.hasPendingPayment || isPaying}
+          className="btn-pill-primary w-full justify-center mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Effectuer le paiement
+          {t.hasPendingPayment ? (
+            <span className="flex items-center gap-2">
+              <Clock className="h-4 w-4 animate-pulse" />
+              Paiement en cours...
+            </span>
+          ) : "Effectuer le paiement"}
         </button>
         <button
           onClick={() => setShowLeaveWarning(true)}
@@ -331,47 +361,100 @@ function MemberView({
                 <ShieldCheck className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <h3 className="font-display text-xl">Signature requise</h3>
-                <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Protocole blockTine</p>
+                <h3 className="font-display text-xl">Paiement Mobile Money</h3>
+                <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Passerelle Kotani Pay</p>
               </div>
             </div>
 
-            <div className="space-y-3 mb-6">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Action</span>
-                <span className="font-medium">Dépôt de contribution</span>
+            <div className="space-y-4 mb-6">
+              <div>
+                <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground block mb-2">Opérateur</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["tmoney", "flooz"] as const).map((op) => (
+                    <button
+                      key={op}
+                      type="button"
+                      onClick={() => setOperator(op)}
+                      className={`px-3 py-2 rounded-lg border text-xs font-medium transition-all ${
+                        operator === op
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {op === "tmoney" ? "T-Money" : "Flooz"}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Montant</span>
-                <span className="font-display text-lg text-primary">{t.amount} MATIC</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Gaz (estimé)</span>
-                <span className="text-primary">0.0024 MATIC</span>
-              </div>
-              <div className="pt-3 border-t border-border flex justify-between text-xs font-mono">
-                <span className="text-muted-foreground">Vers</span>
-                <span className="truncate ml-4">0x71C...4921</span>
+
+              <label className="block">
+                <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Numéro de téléphone</span>
+                <input
+                  type="tel"
+                  placeholder="90 00 00 00"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary"
+                />
+              </label>
+
+              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Action</span>
+                  <span className="font-medium">Dépôt Mobile Money</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Montant</span>
+                  <span className="font-display text-lg text-primary">{t.amount.toLocaleString()} FCFA</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Gaz (Blockchain)</span>
+                  <span className="text-primary">Inclus</span>
+                </div>
+                <div className="pt-3 border-t border-border flex justify-between text-xs font-mono">
+                  <span className="text-muted-foreground">Vers</span>
+                  <span className="truncate ml-4">0x71C...4921</span>
+                </div>
               </div>
             </div>
 
             <div className="flex gap-3">
               <button 
-                onClick={() => setShowPayment(false)}
+                onClick={() => {
+                  setShowPayment(false);
+                  setPhoneNumber("");
+                }}
                 disabled={isPaying}
                 className="btn-pill-secondary flex-1 justify-center"
               >
-                Rejeter
+                Annuler
               </button>
               <button 
                 onClick={async () => {
                   setIsPaying(true);
-                  await new Promise(r => setTimeout(r, 2000));
-                  setIsPaying(false);
-                  setShowPayment(false);
-                  toast.success("Contribution versée !", { 
-                    description: "La transaction a été validée sur le réseau Polygon." 
-                  });
+                  try {
+                    if (!phoneNumber) {
+                      toast.error("Veuillez saisir votre numéro");
+                      setIsPaying(false);
+                      return;
+                    }
+                    toast.info(`Initialisation du paiement ${operator === 'tmoney' ? 'T-Money' : 'Flooz'}...`);
+                    
+                    const success = await deposit(t.id, t.amount, phoneNumber);
+                    
+                    setIsPaying(false);
+                    if (success) {
+                      setShowPayment(false);
+                      toast.success("Demande envoyée !", { 
+                        description: `Un message de confirmation a été envoyé au ${phoneNumber}.` 
+                      });
+                    } else {
+                      toast.error("Échec de l'initialisation du paiement");
+                    }
+                  } catch (e) {
+                    toast.error("Erreur de paiement");
+                    setIsPaying(false);
+                  }
                 }}
                 disabled={isPaying}
                 className="btn-pill-primary flex-1 justify-center"
@@ -386,7 +469,7 @@ function MemberView({
             </div>
             
             <p className="text-[0.6rem] text-center text-muted-foreground mt-4">
-              En confirmant, vous autorisez le smart contract à prélever {t.amount} MATIC de votre portefeuille.
+              Sécurisé par le protocole blockTine. Vos fonds sont convertis en USDC et déposés sur Polygon après validation.
             </p>
           </div>
         </div>
@@ -437,7 +520,7 @@ function MemberView({
   );
 }
 
-function MembersDirectory({ members, tontineId }: { members: import("@/lib/mock-data").Member[], tontineId: string }) {
+function MembersDirectory({ members, tontineId }: { members: Member[], tontineId: string }) {
   const { simulatePenalty } = useApp();
   const [filter, setFilter] = useState<"all" | "paid" | "not-paid">("all");
   const creatorId = members[0]?.id;
@@ -544,7 +627,7 @@ function MemberGroup({
 }: {
   label: string;
   tone: "ok" | "muted" | "bad" | "warning" | "banned";
-  members: import("@/lib/mock-data").Member[];
+  members: Member[];
   tontineId: string;
 }) {
   const { simulatePenalty } = useApp();

@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Copy, Check, ArrowRight } from "lucide-react";
@@ -10,23 +10,40 @@ export const Route = createFileRoute("/dashboard/create")({
 });
 
 function CreatePage() {
-  const { createTontine, tontines, isLoading } = useApp();
+  const { createTontine, deposit, tontines, isLoading } = useApp();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [capacity, setCapacity] = useState(8);
-  const [amount, setAmount] = useState(50);
-  const [initialDeposit, setInitialDeposit] = useState(50);
+  const [amount, setAmount] = useState(500);
+  const [initialDeposit, setInitialDeposit] = useState(500);
   const [cycle, setCycle] = useState<"weekly" | "monthly">("monthly");
   const [visibility, setVisibility] = useState<"public" | "private">("private");
   const [isUnlimitedCapacity, setIsUnlimitedCapacity] = useState(false);
   const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [createdTontine, setCreatedTontine] = useState<Tontine | null>(null);
+  const [phone, setPhone] = useState("");
   const [copied, setCopied] = useState(false);
+
+  // Sync createdTontine with real data from context when it arrives
+  useEffect(() => {
+    if (createdId) {
+      const realTontine = tontines.find(t => t.id === createdId);
+      if (realTontine && realTontine.code !== "GÉNÉRATION...") {
+        setCreatedTontine(realTontine);
+      }
+    }
+  }, [tontines, createdId]);
 
   const created = createdId ? tontines.find((t) => t.id === createdId) : null;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!phone) {
+      toast.error("Veuillez saisir votre numéro pour le versement initial.");
+      return;
+    }
+
     const id = await createTontine({ 
       name: name || "Nouvelle tontine", 
       capacity: isUnlimitedCapacity ? 9999 : capacity, 
@@ -36,15 +53,42 @@ function CreatePage() {
       visibility,
       startDate
     });
-    toast.success("Tontine créée ✦", {
-      description: `Dépôt initial de ${initialDeposit} MATIC enregistré.`,
-    });
-    setCreatedId(id);
+
+    if (id && id !== "error") {
+      // Show modal immediately with a placeholder
+      const tempTontine: Tontine = {
+        id,
+        code: "GÉNÉRATION...", // Will be updated
+        name: name || "Nouvelle tontine",
+        description: "Cercle sécurisé sur Polygon",
+        amount,
+        capacity: isUnlimitedCapacity ? 9999 : capacity,
+        cycle,
+        role: "creator",
+        visibility,
+        members: [],
+        transactions: [],
+        progress: 0
+      };
+      setCreatedTontine(tempTontine);
+      setCreatedId(id);
+
+      // Trigger deposit in background
+      try {
+        const success = await deposit(id, initialDeposit, phone);
+        if (success) {
+          toast.success("Tontine créée & activée ✦");
+        }
+      } catch (err) {
+        console.error("Erreur dépôt:", err);
+        toast.error("Tontine créée, mais le dépôt initial a échoué. Vous pourrez réessayer depuis le dashboard.");
+      }
+    }
   };
 
   const copy = async () => {
-    if (!created) return;
-    await navigator.clipboard.writeText(created.code);
+    if (!createdTontine) return;
+    await navigator.clipboard.writeText(createdTontine.code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   };
@@ -113,8 +157,8 @@ function CreatePage() {
           {!isUnlimitedCapacity && (
             <input
               type="range"
-              min={3}
-              max={50}
+              min={2}
+              max={20}
               value={capacity}
               onChange={(e) => setCapacity(Number(e.target.value))}
               className="w-full accent-primary"
@@ -148,7 +192,7 @@ function CreatePage() {
 
         <label className="block">
           <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">
-            Contribution par cycle (MATIC)
+            Contribution par cycle (FCFA)
           </span>
           <input
             type="number"
@@ -181,45 +225,60 @@ function CreatePage() {
           </div>
         </div>
 
-        <label className="block">
-          <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">
-            Montant à envoyer maintenant (dépôt initial · MATIC)
-          </span>
-          <input
-            type="number"
-            min={0}
-            value={initialDeposit}
-            onChange={(e) => setInitialDeposit(Number(e.target.value))}
-            className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary"
-          />
-          <span className="text-[0.7rem] text-muted-foreground mt-1.5 block">
-            ✦ Versé au smart contract pour activer le cercle.
-          </span>
-        </label>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <label className="block">
+            <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">
+              Dépôt initial (FCFA)
+            </span>
+            <input
+              type="number"
+              min={0}
+              value={initialDeposit}
+              onChange={(e) => setInitialDeposit(Number(e.target.value))}
+              className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary"
+            />
+          </label>
+          <label className="block">
+            <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">
+              Mon Numéro Mobile Money
+            </span>
+            <input
+              type="tel"
+              placeholder="90 00 00 00"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm outline-none focus:border-primary"
+              required
+            />
+          </label>
+        </div>
+        <span className="text-[0.7rem] text-muted-foreground mt-1.5 block">
+          ✦ Le créateur doit effectuer le premier versement pour activer le contrat sur Polygon.
+        </span>
 
         <button type="submit" disabled={isLoading} className="btn-pill-primary w-full justify-center disabled:opacity-50 disabled:cursor-not-allowed">
           {isLoading ? (
-            <span className="flex items-center gap-2">
-              <span className="h-4 w-4 border-2 border-noir border-t-transparent rounded-full animate-spin" />
-              Signature en cours...
-            </span>
+          <span className="flex items-center gap-2">
+            <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            Transaction Blockchain...
+          </span>
           ) : (
             <>
-              <Sparkles className="h-4 w-4" /> Créer & verser {initialDeposit} MATIC
+              <Sparkles className="h-4 w-4" /> Créer & verser {initialDeposit.toLocaleString()} FCFA
             </>
           )}
         </button>
       </form>
 
       {/* Success modal with generated code */}
-      {created && (
+      {createdTontine && (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-background/85 backdrop-blur-sm px-4">
           <div className="tc-card max-w-md w-full p-7 fade-up text-center">
             <div className="inline-flex h-12 w-12 rounded-full grid place-items-center bg-primary text-primary-foreground font-display text-xl mb-4">
               ✦
             </div>
             <span className="hero-badge">Tontine activée</span>
-            <h2 className="font-display text-3xl mt-3">{created.name}</h2>
+            <h2 className="font-display text-3xl mt-3">{createdTontine.name}</h2>
             <p className="text-sm text-muted-foreground mt-2">
               Partagez ce code avec vos membres pour qu'ils rejoignent le cercle.
             </p>
@@ -227,7 +286,7 @@ function CreatePage() {
             <div className="mt-5 p-4 rounded-xl bg-secondary border border-border">
               <span className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Code de la tontine</span>
               <div className="flex items-center justify-center gap-3 mt-1.5">
-                <span className="font-display text-3xl text-primary tracking-wider">{created.code}</span>
+                <span className="font-display text-3xl text-primary tracking-wider">{createdTontine.code}</span>
                 <button
                   onClick={copy}
                   className="p-2 rounded-lg border border-border hover:border-primary hover:text-primary transition-colors"
@@ -241,11 +300,11 @@ function CreatePage() {
             <div className="mt-5 grid grid-cols-2 gap-3 text-left">
               <div className="p-3 rounded-lg bg-secondary/60">
                 <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Dépôt versé</p>
-                <p className="font-display text-xl text-primary mt-0.5">{initialDeposit} MATIC</p>
+                <p className="font-display text-xl text-primary mt-0.5">{initialDeposit.toLocaleString()} FCFA</p>
               </div>
               <div className="p-3 rounded-lg bg-secondary/60">
                 <p className="text-[0.65rem] uppercase tracking-widest text-muted-foreground">Membres</p>
-                <p className="font-display text-xl text-primary mt-0.5">1 / {created.isUnlimitedCapacity ? "∞" : created.capacity}</p>
+                <p className="font-display text-xl text-primary mt-0.5">1 / {createdTontine.capacity === 9999 ? "∞" : createdTontine.capacity}</p>
               </div>
             </div>
 
@@ -255,7 +314,7 @@ function CreatePage() {
               </Link>
               <Link
                 to="/dashboard/tontine/$tontineId"
-                params={{ tontineId: created.id }}
+                params={{ tontineId: createdTontine.id }}
                 className="btn-pill-primary flex-1 justify-center"
               >
                 Voir la tontine <ArrowRight className="h-4 w-4" />

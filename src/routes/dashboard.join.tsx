@@ -23,7 +23,7 @@ function JoinPage() {
       toast.error("Veuillez choisir un ordre de passage");
       return;
     }
-    await joinTontine(selected.id, selectedRank || 0);
+    await joinTontine(selected.id, selected.code, selectedRank || 0);
     toast.success("Vous avez rejoint la tontine ✦", {
       description: `Bienvenue dans ${selected.name}.`,
     });

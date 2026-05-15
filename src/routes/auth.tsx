@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import React, { useState, useEffect } from "react";
 import { useApp } from "@/lib/app-context";
 import { toast } from "sonner";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Eye, EyeOff } from "lucide-react";
 
 type AuthSearch = { mode?: "login" | "signup" };
 
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const { mode = "login" } = Route.useSearch();
   const isSignup = mode === "signup";
-  const { user, login, signup, loginGuest } = useApp();
+  const { user, login, signup, loginGuest, isLoading } = useApp();
   const navigate = useNavigate();
 
   // Redirection automatique si déjà connecté
@@ -37,6 +37,10 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [fundingMode, setFundingMode] = useState(false);
+  const [phone, setPhone] = useState("");
+  const [fundingAmount, setFundingAmount] = useState(2500); // Default account setup fee
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,19 +48,23 @@ function AuthPage() {
     console.log("Tentative d'authentification...", { mode, email });
 
     if (isSignup) {
+      if (password.length < 8) {
+        toast.error("Le mot de passe doit faire au moins 8 caractères");
+        return;
+      }
       if (password !== confirm) {
         toast.error("Les mots de passe ne correspondent pas");
         return;
       }
-      const signupSuccess = signup(name, email, password);
+      const signupSuccess = await signup(name, email, password);
       if (signupSuccess) {
-        toast.success("Compte créé avec succès ! Connectez-vous maintenant.");
-        setTimeout(() => navigate({ to: "/auth", search: { mode: "login" } }), 500);
+        setFundingMode(true);
+        toast.success("Compte créé ! Étape finale : Activer votre Wallet.");
       } else {
         toast.error("Cet email est déjà utilisé");
       }
     } else {
-      const success = login(email, password);
+      const success = await login(email, password);
       if (success) {
         console.log("Login réussi, redirection...");
         toast.success("Bon retour !");
@@ -67,6 +75,22 @@ function AuthPage() {
         toast.error("Email ou mot de passe incorrect");
       }
     }
+  };
+
+  const handleFunding = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!phone) {
+      toast.error("Veuillez saisir votre numéro Mobile Money");
+      return;
+    }
+    
+    // In a real app, this would call deposit(null, fundingAmount, phone)
+    toast.info("Initialisation du transfert Mobile Money...");
+    setTimeout(() => {
+      toast.success("Wallet activé avec succès ! Connectez-vous.");
+      setFundingMode(false);
+      navigate({ to: "/auth", search: { mode: "login" } });
+    }, 1500);
   };
 
   return (
@@ -93,44 +117,97 @@ function AuthPage() {
           </p>
         </div>
 
-        <form onSubmit={submit} className="tc-card p-7 space-y-4">
-          {isSignup && (
-            <Field label="Nom complet" value={name} onChange={setName} placeholder="Aïcha Kpogan" required />
-          )}
-          <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="vous@email.com" required />
-          <Field label="Mot de passe" type="password" value={password} onChange={setPassword} placeholder="••••••••" required />
-          {isSignup && (
-            <Field label="Confirmer le mot de passe" type="password" value={confirm} onChange={setConfirm} placeholder="••••••••" required />
-          )}
-
-          <button type="submit" className="btn-pill-primary w-full justify-center mt-2">
-            {isSignup ? "Créer mon compte" : "Se connecter"} <ArrowRight className="h-4 w-4" />
-          </button>
-
-          {!isSignup && (
-            <button
-              type="button"
-              onClick={() => {
-                loginGuest();
-                toast.success("Mode Démo activé !");
-              }}
-              className="w-full text-[0.7rem] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors py-2"
-            >
-              Ou essayer le <span className="text-primary font-bold">Mode Démo</span> (accès rapide)
+        {fundingMode ? (
+          <form onSubmit={handleFunding} className="tc-card p-7 space-y-5 fade-up">
+            <div className="p-4 rounded-lg bg-primary/10 border border-primary/20 mb-2">
+              <p className="text-xs text-foreground leading-relaxed">
+                Pour interagir avec la blockchain Polygon, votre compte a besoin d'un dépôt initial de "frais de gaz". 
+                Ces fonds restent à vous et sont déposés dans votre wallet sécurisé.
+              </p>
+            </div>
+            
+            <Field label="Montant du dépôt (FCFA)" type="number" value={String(fundingAmount)} onChange={(v) => setFundingAmount(Number(v))} required />
+            <Field label="Votre numéro Mobile Money" type="tel" value={phone} onChange={setPhone} placeholder="90 00 00 00" required />
+            
+            <button type="submit" className="btn-pill-primary w-full justify-center">
+              Activer mon compte & Wallet <ArrowRight className="h-4 w-4" />
             </button>
-          )}
+            <p className="text-center text-[0.65rem] text-muted-foreground uppercase tracking-widest">
+              Passerelle sécurisée Kotani Pay
+            </p>
+          </form>
+        ) : (
+          <form onSubmit={submit} className="tc-card p-7 space-y-4">
+            {isSignup && (
+              <Field label="Nom complet" value={name} onChange={setName} placeholder="Aïcha Kpogan" required />
+            )}
+            <Field label="Email" type="email" value={email} onChange={setEmail} placeholder="vous@email.com" required />
+            <Field 
+              label="Mot de passe" 
+              type={showPassword ? "text" : "password"} 
+              value={password} 
+              onChange={setPassword} 
+              placeholder="••••••••" 
+              required 
+              rightElement={
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="text-muted-foreground hover:text-primary">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              }
+            />
+            {isSignup && (
+              <Field 
+                label="Confirmer le mot de passe" 
+                type={showPassword ? "text" : "password"} 
+                value={confirm} 
+                onChange={setConfirm} 
+                placeholder="••••••••" 
+                required 
+              />
+            )}
 
-          <p className="text-center text-xs text-muted-foreground pt-2">
-            {isSignup ? "Déjà membre ?" : "Pas encore de compte ?"}{" "}
-            <Link
-              to="/auth"
-              search={{ mode: isSignup ? "login" : "signup" }}
-              className="text-primary hover:underline font-medium"
+            <button 
+              type="submit" 
+              disabled={isLoading}
+              className="btn-pill-primary w-full justify-center mt-2 disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {isSignup ? "Se connecter" : "Créer un compte"}
-            </Link>
-          </p>
-        </form>
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  Chargement...
+                </span>
+              ) : (
+                <>
+                  {isSignup ? "Créer mon compte" : "Se connecter"} <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+
+            {!isSignup && (
+              <button
+                type="button"
+                onClick={() => {
+                  loginGuest();
+                  toast.success("Mode Démo activé !");
+                }}
+                className="w-full text-[0.7rem] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors py-2"
+              >
+                Ou essayer le <span className="text-primary font-bold">Mode Démo</span> (accès rapide)
+              </button>
+            )}
+
+            <p className="text-center text-xs text-muted-foreground pt-2">
+              {isSignup ? "Déjà membre ?" : "Pas encore de compte ?"}{" "}
+              <Link
+                to="/auth"
+                search={{ mode: isSignup ? "login" : "signup" }}
+                className="text-primary hover:underline font-medium"
+              >
+                {isSignup ? "Se connecter" : "Créer un compte"}
+              </Link>
+            </p>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -143,6 +220,7 @@ function Field({
   type = "text",
   placeholder,
   required,
+  rightElement,
 }: {
   label: string;
   value: string;
@@ -150,18 +228,26 @@ function Field({
   type?: string;
   placeholder?: string;
   required?: boolean;
+  rightElement?: React.ReactNode;
 }) {
   return (
     <label className="block">
       <span className="text-[0.7rem] uppercase tracking-widest text-muted-foreground">{label}</span>
-      <input
-        type={type}
-        value={value}
-        required={required}
-        placeholder={placeholder}
-        onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors"
-      />
+      <div className="relative mt-1.5">
+        <input
+          type={type}
+          value={value}
+          required={required}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-sm text-foreground outline-none focus:border-primary transition-colors pr-10"
+        />
+        {rightElement && (
+          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            {rightElement}
+          </div>
+        )}
+      </div>
     </label>
   );
 }

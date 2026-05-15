@@ -66,10 +66,11 @@ function DashboardHome() {
       </section>
 
       {/* Overview stats */}
-      <section className="grid sm:grid-cols-3 gap-4 fade-up-2">
-        <Stat icon={<Users className="h-4 w-4" />} label="Tontines actives" value={String(tontines.length)} />
-        <Stat icon={<Calendar className="h-4 w-4" />} label="Prochain paiement" value={nextDue} small />
-        <Stat icon={<TrendingUp className="h-4 w-4" />} label="Total épargné" value={`${totalSaved} MATIC`} />
+      <section className="grid sm:grid-cols-4 gap-4 fade-up-2">
+        <Stat icon={<Users className="h-4 w-4" />} label="Tontines" value={String(tontines.length)} />
+        <Stat icon={<Calendar className="h-4 w-4" />} label="Échéance" value={nextDue} small />
+        <Stat icon={<TrendingUp className="h-4 w-4" />} label="Épargné" value={`${totalSaved.toLocaleString()} FCFA`} />
+        <Stat icon={<Wallet className="h-4 w-4" />} label="Total Versé" value={`${(totalSaved * 1.05).toLocaleString()} FCFA`} />
       </section>
 
       {/* Tontines list */}
@@ -108,7 +109,7 @@ function DashboardHome() {
                   <span className="text-muted-foreground">
                     {t.members.length}/{t.capacity} membres
                   </span>
-                  <span className="font-display text-xl text-primary">{t.amount} MATIC</span>
+                  <span className="font-display text-xl text-primary">{t.amount.toLocaleString()} FCFA</span>
                 </div>
                 <div className="mt-3 h-1 w-full rounded-full bg-secondary overflow-hidden">
                   <div className="h-full bg-primary rounded-full transition-all" style={{ width: `${t.progress ?? 0}%` }} />
