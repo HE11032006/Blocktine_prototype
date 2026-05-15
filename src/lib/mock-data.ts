@@ -16,7 +16,8 @@ export interface Transaction {
   member: string;
   amount: number;
   date: string;
-  type: "contribution" | "payout";
+  type: "contribution" | "payout" | "Dépôt";
+  status?: string;
 }
 
 export interface Tontine {
@@ -36,6 +37,7 @@ export interface Tontine {
   nextDue?: string;
   progress?: number; // 0-100
   transactions: Transaction[];
+  hasPendingPayment?: boolean;
 }
 
 const sampleTx = (n: number, amount: number): Transaction[] =>
