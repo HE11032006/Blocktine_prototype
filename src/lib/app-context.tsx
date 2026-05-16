@@ -34,6 +34,7 @@ interface AppState {
   logout: () => void;
   toggleTheme: () => void;
   createTontine: (data: { name: string; capacity: number; isUnlimitedCapacity?: boolean; amount: number; cycle: Cycle; visibility: "public" | "private"; startDate: string }) => Promise<string>;
+  startTontine: (tontineId: string) => Promise<boolean>;
   deposit: (tontineId: string, amountFCFA: number, phoneNumber: string) => Promise<boolean>;
   joinTontine: (id: string, inviteCode: string, rank: number) => Promise<void>;
   leaveTontine: (id: string) => Promise<void>;
@@ -243,6 +244,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
           console.error("Erreur création tontine:", e);
           setIsLoading(false);
           return "error";
+        }
+      },
+      startTontine: async (tontineId) => {
+        setIsLoading(true);
+        try {
+          await api.post(`/groups/${tontineId}/start`);
+          await fetchTontines();
+          setIsLoading(false);
+          return true;
+        } catch (e: any) {
+          console.error("Erreur start tontine:", e);
+          const msg = e.response?.data?.detail || "Erreur de connexion à la blockchain";
+          toast.error(msg);
+          setIsLoading(false);
+          return false;
         }
       },
       joinTontine: async (id, inviteCode, _rank) => {

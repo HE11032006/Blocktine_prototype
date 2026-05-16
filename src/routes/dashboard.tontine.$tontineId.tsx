@@ -121,11 +121,41 @@ function StatusBadge({ status }: { status: MemberStatus }) {
 }
 
 function CreatorView({ t }: { t: Tontine }) {
+  const { startTontine, isLoading } = useApp();
   const paidCount = t.members.filter((m) => m.status === "paid").length;
   const pct = t.members.length ? Math.round((paidCount / t.members.length) * 100) : 0;
 
+  const handleStart = async () => {
+    const success = await startTontine(t.id);
+    if (success) {
+      toast.success("Tontine démarrée et déployée sur Polygon !");
+    }
+  };
+
   return (
     <div className="grid lg:grid-cols-3 gap-5">
+      {/* Panneau de déploiement de la blockchain */}
+      <div className="tc-card p-6 lg:col-span-3 border-primary/40 bg-primary/5 shadow-[0_0_30px_rgba(var(--color-or-rgb),0.1)]">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+           <div>
+             <h3 className="font-display text-2xl text-primary flex items-center gap-2">
+               <ShieldCheck className="h-6 w-6" /> Déploiement Blockchain
+             </h3>
+             <p className="text-sm text-muted-foreground mt-1 max-w-xl">
+               Il y a actuellement {t.members.length} membre(s). Une fois que vos membres ont rejoint, démarrez officiellement le cycle pour créer le Smart Contract sur Polygon et sécuriser les fonds.
+             </p>
+           </div>
+           <button 
+             onClick={handleStart}
+             disabled={isLoading || t.members.length < 2}
+             className="btn-pill-primary shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+             title={t.members.length < 2 ? "Il faut au moins 2 membres pour démarrer" : ""}
+           >
+             {isLoading ? "Écriture Polygon..." : "Démarrer sur Polygon"}
+           </button>
+        </div>
+      </div>
+
       {/* Members grouped by status */}
       <div className="tc-card p-6 lg:col-span-2">
         <div className="flex items-baseline justify-between mb-4">
