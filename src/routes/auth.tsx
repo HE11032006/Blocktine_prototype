@@ -61,7 +61,7 @@ function AuthPage() {
         setFundingMode(true);
         toast.success("Compte créé ! Étape finale : Activer votre Wallet.");
       } else {
-        toast.error("Erreur d'inscription ! Regarde la console (F12) pour voir la cause exacte.");
+        toast.error("Erreur lors de l'inscription. Veuillez réessayer.");
       }
     } else {
       const success = await login(email, password);
