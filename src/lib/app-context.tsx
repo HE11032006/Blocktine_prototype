@@ -29,7 +29,7 @@ interface AppState {
   settings: Settings;
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
-  signup: (name: string, email: string, pass: string) => Promise<boolean>;
+  signup: (name: string, email: string, pass: string) => Promise<{ success: boolean; errorType?: string }>;
   loginGuest: () => void;
   logout: () => void;
   toggleTheme: () => void;
@@ -186,9 +186,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         if (error) {
           console.error("VRAIE ERREUR SUPABASE:", error.message);
+          setIsLoading(false);
+          if (error.message.toLowerCase().includes("already registered") || error.message.toLowerCase().includes("already exists")) {
+            return { success: false, errorType: "already_exists" };
+          }
+          return { success: false, errorType: "unknown" };
         }
         setIsLoading(false);
-        return !error;
+        return { success: true };
       },
       deposit: async (tontineId, amountFCFA, phoneNumber) => {
         setIsLoading(true);

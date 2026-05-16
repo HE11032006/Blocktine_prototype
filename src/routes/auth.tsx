@@ -56,12 +56,17 @@ function AuthPage() {
         toast.error("Les mots de passe ne correspondent pas");
         return;
       }
-      const signupSuccess = await signup(name, email, password);
-      if (signupSuccess) {
+      const result = await signup(name, email, password);
+      if (result.success) {
         setFundingMode(true);
         toast.success("Compte créé ! Étape finale : Activer votre Wallet.");
       } else {
-        toast.error("Erreur lors de l'inscription. Veuillez réessayer.");
+        if (result.errorType === "already_exists") {
+          toast.error("Cet email est déjà utilisé. Redirection vers la page de connexion...");
+          navigate({ to: "/auth", search: { mode: "login" } });
+        } else {
+          toast.error("Erreur lors de l'inscription. Veuillez réessayer.");
+        }
       }
     } else {
       const success = await login(email, password);
