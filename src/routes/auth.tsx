@@ -61,7 +61,7 @@ function AuthPage() {
         setFundingMode(true);
         toast.success("Compte créé ! Étape finale : Activer votre Wallet.");
       } else {
-        toast.error("Cet email est déjà utilisé");
+        toast.error("Erreur d'inscription ! Regarde la console (F12) pour voir la cause exacte.");
       }
     } else {
       const success = await login(email, password);
@@ -183,18 +183,7 @@ function AuthPage() {
               )}
             </button>
 
-            {!isSignup && (
-              <button
-                type="button"
-                onClick={() => {
-                  loginGuest();
-                  toast.success("Mode Démo activé !");
-                }}
-                className="w-full text-[0.7rem] uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors py-2"
-              >
-                Ou essayer le <span className="text-primary font-bold">Mode Démo</span> (accès rapide)
-              </button>
-            )}
+            {/* Bouton Mode Démo retiré */}
 
             <p className="text-center text-xs text-muted-foreground pt-2">
               {isSignup ? "Déjà membre ?" : "Pas encore de compte ?"}{" "}

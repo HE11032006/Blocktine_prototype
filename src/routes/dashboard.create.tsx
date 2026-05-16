@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import { useApp } from "@/lib/app-context";
+import type { Tontine } from "@/lib/mock-data";
 import { toast } from "sonner";
 import { ArrowLeft, Sparkles, Copy, Check, ArrowRight } from "lucide-react";
 
@@ -68,7 +69,9 @@ function CreatePage() {
         visibility,
         members: [],
         transactions: [],
-        progress: 0
+        progress: 0,
+        startDate: startDate,
+        rules: "Paiement ponctuel obligatoire",
       };
       setCreatedTontine(tempTontine);
       setCreatedId(id);

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useMemo, useState, type Re
 import { availableTontines as initAvailable, initialTontines, type Cycle, type Tontine, fillMembers } from "@/lib/mock-data";
 import { supabase } from "@/lib/supabase";
 import axios from "axios";
+import { toast } from "sonner";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
@@ -128,6 +129,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
           })),
           hasPendingPayment: pRes.data.some((p: any) => p.user_id === user.id && p.status === "pending"),
           progress: 0,
+          startDate: g.created_at || new Date().toISOString(),
+          rules: "Paiement ponctuel obligatoire",
         };
       }));
       setTontines(mapped);
@@ -181,6 +184,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           password,
           options: { data: { full_name: name, wallet_address: `0x${Math.random().toString(16).slice(2, 40)}` } }
         });
+        if (error) {
+          console.error("VRAIE ERREUR SUPABASE:", error.message);
+        }
         setIsLoading(false);
         return !error;
       },
@@ -198,9 +204,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         } catch (e: any) {
           console.error("Erreur depot:", e);
           if (e.response?.status === 409) {
-            toast.error("Paiement déjà en cours", {
-              description: "Une demande de paiement a déjà été initiée pour cette période."
-            });
+            toast.error("Paiement déjà en cours (Une demande a déjà été initiée)");
           }
           setIsLoading(false);
           return false;
@@ -277,6 +281,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
             members: [],
             transactions: [],
             progress: 0,
+            startDate: new Date().toISOString(),
+            rules: "Paiement ponctuel obligatoire",
           };
           
           setIsLoading(false);

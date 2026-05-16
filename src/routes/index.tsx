@@ -62,19 +62,7 @@ function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-6">
-          <button
-            onClick={() => {
-              loginGuest();
-              toast.success("Mode Démo activé !");
-              navigate({ to: "/dashboard" });
-            }}
-            className="text-[0.6rem] sm:text-[0.7rem] uppercase tracking-widest text-primary font-bold hover:opacity-80 transition-opacity"
-          >
-            Mode Démo (accès rapide sans connexion)
-          </button>
-          <Link to="/auth" search={{ mode: "login" }} className="text-xs font-medium text-muted-foreground hover:text-primary">
-            Se connecter
-          </Link>
+          {/* Éléments de connexion retirés */}
         </div>
       </nav>
 
@@ -101,9 +89,6 @@ function Landing() {
           <div className="mt-8 flex flex-wrap gap-3 fade-up-4">
             <Link to="/auth" search={{ mode: "signup" }} className="btn-pill-primary">
               Commencer <ArrowRight className="h-4 w-4" />
-            </Link>
-            <Link to="/auth" search={{ mode: "login" }} className="btn-pill-secondary">
-              Se connecter
             </Link>
           </div>
 
